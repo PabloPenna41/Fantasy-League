@@ -1,0 +1,3509 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copa do Mundo 2026 — Simulador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #D6B25E;
+      --gold-dark: #A67C2D;
+      --green: #12392B;
+      --green-mid: #1D5C45;
+      --green-light: #35B779;
+      --white: #F4F1E8;
+      --gray-100: #E8E2D4;
+      --gray-300: #B8B2A6;
+      --gray-500: #827C70;
+      --gray-700: #514D44;
+      --dark: #080B0D;
+      --panel: #12171A;
+      --panel-2: #171F22;
+      --line: rgba(244,241,232,0.11);
+      --red: #C65A4A;
+      --blue: #2C6F9F;
+      --shadow: 0 18px 50px rgba(0,0,0,0.32);
+      --radius: 10px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #070A0C;
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background Pattern ───────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 12%, rgba(255,255,255,0.035) 12% 12.25%, transparent 12.25% 87.75%, rgba(255,255,255,0.035) 87.75% 88%, transparent 88%),
+        linear-gradient(0deg, transparent 0 22%, rgba(255,255,255,0.035) 22% 22.25%, transparent 22.25% 77.75%, rgba(255,255,255,0.035) 77.75% 78%, transparent 78%),
+        #0A1412;
+      pointer-events: none; z-index: 0;
+      opacity: 0.85;
+    }
+
+    /* ─── Layout ───────────────────────────────────────────────── */
+    .app { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* ─── Header ───────────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      padding: 48px 0 36px;
+      border-bottom: 1px solid rgba(245,166,35,0.2);
+      margin-bottom: 40px;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(245,166,35,0.12);
+      border: 1px solid rgba(245,166,35,0.35);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(42px, 8vw, 72px);
+      letter-spacing: 0.03em;
+      line-height: 1;
+      color: var(--white);
+    }
+    .header h1 span { color: var(--gold); }
+    .header p {
+      margin-top: 12px;
+      color: var(--gray-500);
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    /* ─── Trophy decoration ────────────────────────────────────── */
+    .trophy-line {
+      display: flex; align-items: center; gap: 16px;
+      justify-content: center; margin-top: 20px;
+    }
+    .trophy-line span { font-size: 28px; animation: float 3s ease-in-out infinite; }
+    .trophy-line span:nth-child(2) { animation-delay: 0.5s; font-size: 20px; opacity: 0.6; }
+    .trophy-line span:nth-child(4) { animation-delay: 1s; font-size: 20px; opacity: 0.6; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+    /* ─── Tabs (Auth vs Game) ──────────────────────────────────── */
+    .view { display: none; animation: fadeIn 0.3s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ─── Cards ────────────────────────────────────────────────── */
+    .card {
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 20px;
+    }
+    .ui-icon {
+      width: 1.25em;
+      height: 1.25em;
+      display: inline-block;
+      vertical-align: -0.25em;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .ui-icon-lg {
+      width: 2.8em;
+      height: 2.8em;
+    }
+    .icon-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rating-icons {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      vertical-align: -0.18em;
+    }
+    .rating-icons .ui-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ─── Auth Forms ───────────────────────────────────────────── */
+    .auth-tabs {
+      display: flex; gap: 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius); padding: 4px;
+      margin-bottom: 24px;
+    }
+    .auth-tab {
+      flex: 1; padding: 10px;
+      background: none; border: none; cursor: pointer;
+      color: var(--gray-500); font-family: inherit;
+      font-size: 14px; font-weight: 600;
+      border-radius: calc(var(--radius) - 4px);
+      transition: all 0.2s;
+    }
+    .auth-tab.active {
+      background: var(--green-mid);
+      color: var(--white);
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 12px;
+      color: var(--gray-500); margin-bottom: 6px;
+      font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .form-group input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 12px 14px;
+      color: var(--white); font-family: inherit; font-size: 15px;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .form-group input:focus { border-color: var(--green-light); }
+    .form-group input::placeholder { color: var(--gray-700); }
+
+    /* ─── Buttons ──────────────────────────────────────────────── */
+    .btn {
+      width: 100%; padding: 14px;
+      font-family: inherit; font-size: 15px; font-weight: 600;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: all 0.15s; letter-spacing: 0.03em;
+    }
+    .btn-primary {
+      background: var(--green-mid);
+      color: var(--white);
+      border: 1px solid rgba(53,183,121,0.28);
+    }
+    .btn-primary:hover { background: var(--green-light); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-gold {
+      background: var(--gold);
+      color: var(--dark);
+      border: 1px solid rgba(255,255,255,0.22);
+    }
+    .btn-gold:hover { background: #f8b84a; transform: translateY(-1px); }
+    .btn-danger {
+      background: rgba(192,57,43,0.15);
+      color: #e74c3c; border: 1px solid rgba(192,57,43,0.3);
+      margin-top: 8px;
+    }
+    .btn-danger:hover { background: rgba(192,57,43,0.25); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ─── User bar ─────────────────────────────────────────────── */
+    .user-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(18,23,26,0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 14px 20px; margin-bottom: 28px;
+    }
+    .user-bar-left { display: flex; align-items: center; gap: 12px; }
+    .user-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: #1D5C45; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 15px; color: var(--white);
+    }
+    .user-name { font-weight: 600; font-size: 15px; }
+    .user-sub { font-size: 12px; color: var(--gray-500); margin-top: 1px; }
+    .btn-logout {
+      background: none; border: 1px solid rgba(255,255,255,0.1);
+      color: var(--gray-500); font-family: inherit; font-size: 12px;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { color: var(--white); border-color: rgba(255,255,255,0.25); }
+    .user-actions { display: flex; align-items: center; gap: 10px; }
+    .wallet-button {
+      border: 1px solid rgba(245,166,35,0.35); background: rgba(245,166,35,0.12);
+      color: var(--gold); border-radius: 999px; padding: 8px 13px;
+      font-family: inherit; font-weight: 900; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .wallet-button:hover { background: rgba(245,166,35,0.2); transform: translateY(-1px); }
+
+    /* ─── Game Navigation ─────────────────────────────────────── */
+    .game-nav {
+      display: flex; gap: 8px; margin-bottom: 24px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius); padding: 6px;
+    }
+    .game-tab {
+      flex: 1; border: none; cursor: pointer;
+      border-radius: 8px; padding: 12px 14px;
+      background: transparent; color: var(--gray-500);
+      font-family: 'DM Sans', sans-serif; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase; font-size: 12px;
+      transition: all 0.2s;
+    }
+    .game-tab:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+    .game-tab.active { background: var(--green-mid); color: var(--white); }
+    .game-panel { display: none; }
+    .game-panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+    /* ─── Team Selector ────────────────────────────────────────── */
+    .selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px; margin-top: 12px;
+      max-height: 280px; overflow-y: auto;
+      padding-right: 4px;
+    }
+    .selector-grid::-webkit-scrollbar { width: 4px; }
+    .selector-grid::-webkit-scrollbar-track { background: transparent; }
+    .selector-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    .team-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 10px 12px;
+      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; gap: 8px;
+      user-select: none;
+    }
+    .team-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-1px);
+    }
+    .team-card.selected {
+      background: rgba(15,122,77,0.2);
+      border-color: var(--green-light);
+    }
+    .team-card.locked {
+      cursor: not-allowed;
+      filter: grayscale(1);
+      opacity: 0.45;
+    }
+    .team-card.locked:hover {
+      transform: none;
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.08);
+    }
+    .team-flag { font-size: 20px; flex-shrink: 0; }
+    .team-info-mini { min-width: 0; }
+    .team-name-mini { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-stars { font-size: 9px; color: var(--gold); letter-spacing: -1px; margin-top: 1px; }
+
+    /* ─── VS Display ───────────────────────────────────────────── */
+    .vs-display {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius); padding: 20px 24px; margin: 24px 0;
+      gap: 12px;
+    }
+    .vs-team { text-align: center; flex: 1; min-width: 0; }
+    .vs-flag { font-size: 36px; margin-bottom: 6px; display: block; }
+    .vs-name { font-size: 13px; font-weight: 600; }
+    .vs-rating { font-size: 10px; color: var(--gold); margin-top: 3px; }
+    .vs-divider {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px; color: var(--gold);
+      flex-shrink: 0; letter-spacing: 2px;
+    }
+    .vs-placeholder { color: var(--gray-700); font-size: 12px; font-style: italic; }
+
+    /* ─── Result Modal ─────────────────────────────────────────── */
+    .result-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.85);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .result-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+    .result-modal {
+      background: #1a1a18;
+      border-radius: 20px; padding: 40px 36px;
+      max-width: 920px; width: 100%;
+      max-height: 92vh; overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .result-badge {
+      display: inline-block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px; letter-spacing: 0.15em;
+      padding: 6px 20px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .result-badge.win { background: rgba(26,173,111,0.2); color: var(--green-light); border: 1px solid rgba(26,173,111,0.4); }
+    .result-badge.loss { background: rgba(192,57,43,0.2); color: #e74c3c; border: 1px solid rgba(192,57,43,0.4); }
+    .result-badge.draw { background: rgba(245,166,35,0.15); color: var(--gold); border: 1px solid rgba(245,166,35,0.35); }
+
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; margin: 20px 0 24px;
+    }
+    .score-team { text-align: center; }
+    .score-flag { font-size: 44px; display: block; margin-bottom: 8px; }
+    .score-name { font-size: 13px; color: var(--gray-500); margin-bottom: 6px; }
+    .score-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 64px; line-height: 1; color: var(--white);
+    }
+    .score-divider { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--gray-700); margin-top: 20px; }
+
+    .result-narrative {
+      font-size: 13px; line-height: 1.7;
+      color: var(--gray-500); margin: 0 0 28px;
+      font-style: italic;
+    }
+
+	    .result-actions { display: flex; flex-direction: column; gap: 10px; }
+
+	    /* ─── Live Match Animation ─────────────────────────────────── */
+	    .match-overlay {
+	      display: none; position: fixed; inset: 0; z-index: 250;
+	      background: rgba(3,7,10,0.88);
+	      align-items: center; justify-content: center;
+	      padding: 18px;
+	    }
+	    .match-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+	    .match-overlay.ending { animation: matchFadeOut 0.26s ease forwards; }
+	    .match-stage {
+	      width: min(940px, 100%);
+	      background: var(--surface-strong);
+	      border: 1px solid rgba(55,215,255,0.28);
+	      border-radius: 8px;
+	      padding: 18px;
+	      box-shadow: var(--shadow);
+	    }
+	    .match-score-header {
+	      display: grid;
+	      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	      align-items: center;
+	      gap: 14px;
+	      margin-bottom: 12px;
+	    }
+	    .match-score-team {
+	      display: flex;
+	      align-items: center;
+	      gap: 10px;
+	      min-width: 0;
+	      color: var(--white);
+	      font-weight: 900;
+	      text-transform: uppercase;
+	      letter-spacing: 0.06em;
+	      font-size: 12px;
+	    }
+	    .match-score-team:last-child { justify-content: flex-end; text-align: right; }
+	    .match-score-team strong {
+	      overflow: hidden;
+	      text-overflow: ellipsis;
+	      white-space: nowrap;
+	    }
+	    .match-score-center {
+	      min-width: 132px;
+	      display: grid;
+	      justify-items: center;
+	      gap: 3px;
+	      padding: 8px 14px;
+	      border-radius: 8px;
+	      background: rgba(0,0,0,0.28);
+	      border: 1px solid rgba(255,255,255,0.13);
+	    }
+	    .match-clock {
+	      color: var(--cyan);
+	      font-size: 11px;
+	      font-weight: 900;
+	      letter-spacing: 0.12em;
+	    }
+	    .match-score-center strong {
+	      font-family: 'Bebas Neue', sans-serif;
+	      font-size: 36px;
+	      line-height: 1;
+	      letter-spacing: 0.04em;
+	    }
+	    .live-pitch {
+	      position: relative;
+	      height: clamp(270px, 48vw, 430px);
+	      overflow: hidden;
+	      border-radius: 8px;
+	      border: 2px solid rgba(255,255,255,0.78);
+	      background:
+	        repeating-linear-gradient(90deg, rgba(255,255,255,0.055) 0 9%, transparent 9% 18%),
+	        linear-gradient(135deg, #0b6d43, var(--pitch) 48%, #0d7d55);
+	      box-shadow: inset 0 0 0 4px rgba(255,255,255,0.08);
+	    }
+	    .live-pitch::before {
+	      content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+	      width: 2px; background: rgba(255,255,255,0.74);
+	      transform: translateX(-50%);
+	    }
+	    .live-pitch::after {
+	      content: ''; position: absolute; left: 50%; top: 50%;
+	      width: 122px; height: 122px;
+	      border: 2px solid rgba(255,255,255,0.74);
+	      border-radius: 50%;
+	      transform: translate(-50%, -50%);
+	    }
+	    .live-box {
+	      position: absolute;
+	      top: 26%;
+	      width: 16%;
+	      height: 48%;
+	      border: 2px solid rgba(255,255,255,0.74);
+	      z-index: 1;
+	    }
+	    .live-box.home { left: 0; border-left: none; }
+	    .live-box.away { right: 0; border-right: none; }
+	    .match-player {
+	      position: absolute;
+	      z-index: 3;
+	      width: 18px;
+	      height: 18px;
+	      border-radius: 50%;
+	      border: 2px solid rgba(255,255,255,0.86);
+	      box-shadow: 0 6px 14px rgba(0,0,0,0.34);
+	      animation-duration: 4.8s;
+	      animation-timing-function: ease-in-out;
+	      animation-iteration-count: infinite;
+	    }
+	    .match-player.home { background: var(--cyan); }
+	    .match-player.away { background: var(--orange); }
+	    .live-pitch.playing .match-player.home.p1 { animation-name: homePlayerOne; }
+	    .live-pitch.playing .match-player.home.p2 { animation-name: homePlayerTwo; }
+	    .live-pitch.playing .match-player.home.p3 { animation-name: homePlayerThree; }
+	    .live-pitch.playing .match-player.away.p1 { animation-name: awayPlayerOne; }
+	    .live-pitch.playing .match-player.away.p2 { animation-name: awayPlayerTwo; }
+	    .live-pitch.playing .match-player.away.p3 { animation-name: awayPlayerThree; }
+	    .match-ball {
+	      position: absolute;
+	      z-index: 5;
+	      width: 16px;
+	      height: 16px;
+	      border-radius: 50%;
+	      background:
+	        radial-gradient(circle at 38% 36%, #ffffff 0 26%, #1a1a18 27% 32%, #ffffff 33% 100%);
+	      box-shadow: 0 6px 16px rgba(0,0,0,0.36);
+	    }
+	    .live-pitch.playing .match-ball {
+	      animation: ballRun 4.8s cubic-bezier(0.45,0.03,0.28,0.96) infinite;
+	    }
+	    .match-goal-flash {
+	      position: absolute;
+	      inset: 0;
+	      z-index: 6;
+	      pointer-events: none;
+	      opacity: 0;
+	      background: radial-gradient(circle at var(--flash-x, 50%) 50%, rgba(245,166,35,0.48), transparent 28%);
+	    }
+	    .match-goal-flash.show { animation: goalFlash 0.48s ease; }
+	    .match-live-event {
+	      min-height: 40px;
+	      margin-top: 12px;
+	      display: grid;
+	      place-items: center;
+	      color: var(--white);
+	      font-size: 13px;
+	      font-weight: 900;
+	      letter-spacing: 0.06em;
+	      text-transform: uppercase;
+	      border: 1px solid rgba(255,255,255,0.11);
+	      border-radius: 8px;
+	      background: rgba(0,0,0,0.22);
+	      text-align: center;
+	      padding: 8px 12px;
+	    }
+	    @keyframes matchFadeOut { to { opacity: 0; transform: scale(0.98); } }
+	    @keyframes goalFlash {
+	      0% { opacity: 0; }
+	      35% { opacity: 1; }
+	      100% { opacity: 0; }
+	    }
+	    @keyframes ballRun {
+	      0% { left: 12%; top: 51%; transform: translate(-50%, -50%) scale(1); }
+	      16% { left: 28%; top: 34%; transform: translate(-50%, -50%) scale(0.94); }
+	      34% { left: 48%; top: 58%; transform: translate(-50%, -50%) scale(1.04); }
+	      52% { left: 68%; top: 41%; transform: translate(-50%, -50%) scale(0.96); }
+	      70% { left: 84%; top: 50%; transform: translate(-50%, -50%) scale(1.08); }
+	      86% { left: 54%; top: 64%; transform: translate(-50%, -50%) scale(0.98); }
+	      100% { left: 12%; top: 51%; transform: translate(-50%, -50%) scale(1); }
+	    }
+	    @keyframes homePlayerOne {
+	      0%, 100% { left: 20%; top: 34%; }
+	      48% { left: 38%; top: 28%; }
+	      72% { left: 46%; top: 44%; }
+	    }
+	    @keyframes homePlayerTwo {
+	      0%, 100% { left: 27%; top: 62%; }
+	      45% { left: 50%; top: 58%; }
+	      72% { left: 62%; top: 66%; }
+	    }
+	    @keyframes homePlayerThree {
+	      0%, 100% { left: 42%; top: 48%; }
+	      50% { left: 66%; top: 36%; }
+	      80% { left: 76%; top: 50%; }
+	    }
+	    @keyframes awayPlayerOne {
+	      0%, 100% { left: 80%; top: 36%; }
+	      44% { left: 64%; top: 30%; }
+	      72% { left: 56%; top: 45%; }
+	    }
+	    @keyframes awayPlayerTwo {
+	      0%, 100% { left: 73%; top: 64%; }
+	      50% { left: 54%; top: 62%; }
+	      76% { left: 42%; top: 68%; }
+	    }
+	    @keyframes awayPlayerThree {
+	      0%, 100% { left: 58%; top: 50%; }
+	      46% { left: 36%; top: 42%; }
+	      82% { left: 24%; top: 52%; }
+	    }
+
+	    /* ─── Tactical Field ───────────────────────────────────────── */
+	    .pitch-wrap { margin: 22px 0 26px; text-align: left; }
+    .pitch-title {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; color: var(--gold); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .pitch-title span:last-child { color: var(--gray-500); text-align: right; }
+    .football-pitch {
+      position: relative; min-height: 420px; overflow: hidden;
+      border-radius: 12px; border: 2px solid rgba(255,255,255,0.78);
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 8%, transparent 8% 16%),
+        linear-gradient(135deg, #0a633a, #0f7a4d 52%, #0a5c38);
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.08), var(--shadow);
+    }
+    .football-pitch::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 50%;
+      height: 2px; background: rgba(255,255,255,0.72); transform: translateY(-50%);
+    }
+    .football-pitch::after {
+      content: ''; position: absolute; left: 50%; top: 50%;
+      width: 118px; height: 118px; border: 2px solid rgba(255,255,255,0.72);
+      border-radius: 50%; transform: translate(-50%, -50%);
+    }
+    .pitch-area {
+      position: absolute; left: 25%; width: 50%; height: 14%;
+      border: 2px solid rgba(255,255,255,0.72);
+    }
+    .pitch-area.left { top: 0; border-top: none; }
+    .pitch-area.right { bottom: 0; border-bottom: none; }
+    .pitch-team-label {
+      position: absolute; z-index: 3; top: 10px;
+      font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+      letter-spacing: 0.04em; text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+    .pitch-team-label.left { left: 14px; }
+    .pitch-team-label.right { right: 14px; text-align: right; }
+    .pitch-player {
+      position: absolute; z-index: 4; transform: translate(-50%, -50%);
+      width: min(118px, 22vw); min-height: 46px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      gap: 2px; padding: 7px 8px; border-radius: 8px;
+      background: rgba(18,18,16,0.82);
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+      text-align: center;
+    }
+    .pitch-player.owned {
+      background: linear-gradient(160deg, rgba(245,166,35,0.9), rgba(15,122,77,0.92));
+      border-color: rgba(255,255,255,0.55);
+      box-shadow: 0 0 0 2px rgba(245,166,35,0.25), 0 10px 24px rgba(0,0,0,0.28);
+    }
+    .pitch-player.vacant {
+      background: rgba(18,18,16,0.48);
+      border-style: dashed;
+      opacity: 0.78;
+    }
+    .pitch-player-name {
+      width: 100%; color: var(--white); font-size: 11px; font-weight: 800;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pitch-player-meta { color: rgba(255,255,255,0.74); font-size: 9px; font-weight: 700; }
+
+    /* ─── Sticker Album ───────────────────────────────────────── */
+    .album-hero {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px;
+      align-items: center;
+    }
+    .album-stats {
+      display: grid; grid-template-columns: repeat(3, minmax(90px, 1fr));
+      gap: 10px; margin-top: 12px;
+    }
+    .pack-stage { min-width: 220px; }
+    .pack-reveal {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(204px, 1fr)); gap: 8px;
+      margin-top: 12px; min-height: 360px;
+    }
+    .sticker-card {
+      position: relative; min-height: 360px; border-radius: 10px; padding: 10px;
+      display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+      background: #214D3C;
+      border: 1px solid rgba(244,241,232,0.22);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.22);
+      overflow: hidden;
+    }
+    .sticker-card::before {
+      content: ''; position: absolute; inset: -60% -30%;
+      background: rgba(255,255,255,0.08);
+      transform: translateX(-70%) rotate(8deg);
+    }
+    .sticker-card.revealed { animation: stickerPop 0.45s ease both; }
+    @keyframes stickerPop { from { opacity: 0; transform: translateY(18px) scale(0.92); } to { opacity: 1; transform: none; } }
+    .sticker-card.locked {
+      background: #202326;
+      border-color: rgba(255,255,255,0.08);
+      filter: grayscale(1);
+      opacity: 0.62;
+    }
+    .sticker-card.locked::before { display: none; }
+    .sticker-card.lineup-selected {
+      outline: 2px solid var(--gold);
+      box-shadow: 0 0 0 4px rgba(245,166,35,0.14), 0 10px 26px rgba(0,0,0,0.22);
+    }
+    .sticker-photo {
+      position: relative;
+      z-index: 1;
+      width: 184px;
+      height: 255px;
+      max-width: 100%;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 8px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.2));
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .sticker-photo img {
+      width: 184px;
+      height: 255px;
+      max-width: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+    .sticker-photo-fallback,
+    .sticker-photo.missing {
+      color: rgba(255,255,255,0.82);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 54px;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+    .sticker-photo.missing::after { content: attr(data-fallback); }
+    .sticker-info {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 6px;
+    }
+    .sticker-team { position: relative; font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.82); text-transform: uppercase; }
+    .sticker-name {
+      position: relative; font-family: 'Bebas Neue', sans-serif; font-size: 24px;
+      line-height: 0.95; letter-spacing: 0.02em; color: var(--white);
+      overflow-wrap: anywhere;
+    }
+    .sticker-meta {
+      position: relative; display: flex; justify-content: space-between; align-items: center;
+      gap: 8px; font-size: 10px; font-weight: 800; color: rgba(255,255,255,0.86);
+    }
+    .sticker-count {
+      background: rgba(18,18,16,0.52); border-radius: 999px; padding: 3px 7px;
+      color: var(--white);
+    }
+    .sticker-action {
+      position: relative; border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(18,18,16,0.52); color: var(--white);
+      border-radius: 7px; padding: 7px 8px; font-family: inherit;
+      font-size: 10px; font-weight: 900; cursor: pointer; margin-top: 8px;
+    }
+    .sticker-action:hover { border-color: rgba(245,166,35,0.7); }
+    .lineup-tools {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-top: 12px; color: var(--gray-500); font-size: 12px;
+    }
+    .player-filters {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.42fr) auto;
+      gap: 10px;
+      align-items: end;
+      margin: -2px 0 14px;
+    }
+    .player-filter-field {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+    .player-filter-field label {
+      color: var(--gray-500);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .player-filter-field input,
+    .player-filter-field select {
+      width: 100%;
+      min-height: 44px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+      border-radius: 8px;
+      color: var(--white);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      outline: none;
+      padding: 0 12px;
+    }
+    .player-filter-field input:focus,
+    .player-filter-field select:focus {
+      border-color: rgba(55,215,255,0.56);
+      box-shadow: 0 0 0 3px rgba(55,215,255,0.08);
+    }
+    .player-filter-field input::placeholder { color: var(--gray-700); }
+    .player-filter-field select option { color: #10141b; }
+    .player-filter-reset {
+      min-height: 44px;
+      width: auto;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      background: rgba(255,255,255,0.06);
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .player-filter-reset:hover {
+      border-color: rgba(245,166,35,0.58);
+      background: rgba(245,166,35,0.1);
+    }
+    .album-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(204px, 1fr));
+      gap: 10px; margin-top: 14px;
+    }
+    .pack-actions {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px; margin-top: 16px;
+    }
+    .gacha-rates {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px; margin-top: 12px;
+    }
+    .gacha-rate {
+      background: rgba(18,23,26,0.92); border: 1px solid var(--line);
+      border-radius: 8px; padding: 9px 10px; font-size: 10px; color: var(--gray-300);
+      display: flex; justify-content: space-between; gap: 8px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .gacha-overlay {
+      position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.82); z-index: 300; padding: 18px;
+    }
+    .gacha-overlay.show { display: flex; }
+    .gacha-modal {
+      width: min(980px, 100%); max-height: 92vh; overflow: auto;
+      background: #111619; border: 1px solid rgba(214,178,94,0.28);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+    }
+    .gacha-title {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px;
+      margin-bottom: 16px;
+    }
+    .gacha-title h2 {
+      font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.03em;
+      color: var(--white); font-size: 34px; line-height: 1;
+    }
+    .gacha-title span { color: var(--gray-500); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .roulette-wrapper {
+      position: relative; overflow: hidden; height: 400px; border-radius: 12px;
+      background: #0B1012; border: 1px solid var(--line);
+    }
+    .roulette-center-line {
+      position: absolute; top: 0; bottom: 0; left: 50%; width: 4px;
+      transform: translateX(-50%); background: var(--gold); z-index: 2;
+      box-shadow: 0 0 22px rgba(245,166,35,0.82);
+    }
+    .roulette-track {
+      position: absolute; top: 50%; left: 0; display: flex; gap: 12px;
+      transform: translate3d(0,-50%,0); will-change: transform;
+    }
+    .roulette-card {
+      width: 204px; min-width: 204px; height: 360px;
+    }
+    .roulette-card .sticker-card { height: 100%; min-height: 0; }
+	    .gacha-results {
+	      display: grid; grid-template-columns: repeat(auto-fill, minmax(204px, 1fr));
+	      gap: 10px; margin-top: 14px; min-height: 360px;
+	    }
+	    .gacha-result-card,
+	    .pack-reveal-card {
+	      animation: cardDeal 0.42s ease both;
+	      animation-delay: var(--deal-delay, 0ms);
+	    }
+	    .gacha-actions {
+	      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px;
+	    }
+	    .gacha-status {
+	      min-height: 28px;
+	      margin-top: 12px;
+	      color: var(--cyan);
+	      font-size: 12px;
+	      font-weight: 900;
+	      letter-spacing: 0.1em;
+	      text-transform: uppercase;
+	      text-align: center;
+	    }
+	    .gacha-overlay.purchase-complete .gacha-modal {
+	      animation: purchaseComplete 0.55s ease both;
+	    }
+	    .gacha-overlay.purchase-complete .roulette-center-line {
+	      box-shadow: 0 0 34px rgba(245,166,35,0.96);
+	    }
+	    .shop-grid {
+	      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+	      gap: 12px; margin: 16px 0;
+	    }
+    .shop-pack {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.15s;
+    }
+	    .shop-pack:hover, .shop-pack.selected {
+	      border-color: rgba(245,166,35,0.55); background: rgba(245,166,35,0.1);
+	      transform: translateY(-2px);
+	    }
+	    .wallet-button.balance-pop {
+	      animation: walletPop 0.5s ease;
+	    }
+	    .shop-gems { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--gold); line-height: 1; }
+    .shop-price { color: var(--gray-300); font-size: 13px; font-weight: 800; margin-top: 8px; }
+    .payment-form {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px;
+    }
+    .payment-form .form-group:first-child { grid-column: 1 / -1; }
+    .sticker-card.rarity-legendary:not(.locked) {
+      background: #6F5524;
+      box-shadow: 0 0 32px rgba(214,178,94,0.24), 0 10px 26px rgba(0,0,0,0.22);
+    }
+    .sticker-card.rarity-epic:not(.locked) { background: #244C68; }
+    .sticker-card.rarity-rare:not(.locked) { background: #1D5C45; }
+    .team-collection-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px; margin-top: 14px;
+    }
+    .selection-layout {
+      display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 20px;
+    }
+    .selection-detail {
+      min-height: 260px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .selection-detail-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .selection-filter-count {
+      color: var(--gray-500);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      margin-left: 8px;
+      text-transform: uppercase;
+      vertical-align: 0.22em;
+    }
+
+    /* ─── History ──────────────────────────────────────────────── */
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; padding: 12px 16px;
+      gap: 12px;
+    }
+    .history-teams { font-size: 14px; font-weight: 600; }
+    .history-score { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
+    .history-result-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 4px 10px; border-radius: 6px; flex-shrink: 0;
+    }
+    .history-result-badge.win { background: rgba(26,173,111,0.15); color: var(--green-light); }
+    .history-result-badge.loss { background: rgba(192,57,43,0.15); color: #e74c3c; }
+    .history-result-badge.draw { background: rgba(245,166,35,0.12); color: var(--gold); }
+    .history-empty { text-align: center; color: var(--gray-700); font-size: 14px; padding: 32px 0; }
+
+    /* ─── Stats ────────────────────────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 16px; text-align: center; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; }
+    .stat-num.win { color: var(--green-light); }
+    .stat-num.loss { color: #e74c3c; }
+    .stat-num.draw { color: var(--gold); }
+    .stat-label { font-size: 11px; color: var(--gray-500); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* ─── Alerts ───────────────────────────────────────────────── */
+    .alert {
+      padding: 12px 16px; border-radius: 8px; font-size: 13px;
+      margin-bottom: 16px; display: none;
+    }
+    .alert.show { display: block; }
+    .alert-error { background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3); color: #e74c3c; }
+    .alert-success { background: rgba(26,173,111,0.12); border: 1px solid rgba(26,173,111,0.3); color: var(--green-light); }
+
+    /* ─── Loading Spinner ──────────────────────────────────────── */
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: var(--white);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Confetti ─────────────────────────────────────────────── */
+    .confetti-piece {
+      position: fixed; width: 8px; height: 8px;
+      border-radius: 2px; pointer-events: none; z-index: 200;
+      animation: confettiFall 2.5s ease-in forwards;
+    }
+	    @keyframes confettiFall {
+	      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+	      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+	    }
+	    @keyframes cardDeal {
+	      0% { opacity: 0; transform: translateY(20px) scale(0.9); filter: saturate(0.5); }
+	      70% { transform: translateY(-3px) scale(1.02); }
+	      100% { opacity: 1; transform: none; filter: none; }
+	    }
+	    @keyframes purchaseComplete {
+	      0%, 100% { box-shadow: var(--shadow); }
+	      45% { box-shadow: 0 0 0 2px rgba(245,166,35,0.36), 0 0 44px rgba(245,166,35,0.32), var(--shadow); }
+	    }
+	    @keyframes walletPop {
+	      0%, 100% { transform: none; }
+	      45% { transform: translateY(-2px) scale(1.07); box-shadow: 0 0 24px rgba(245,166,35,0.32); }
+	    }
+
+	    @media (max-width: 720px) {
+      .app { padding: 0 12px 44px; }
+      .card, .result-modal { padding: 22px 16px; }
+      .album-hero { grid-template-columns: 1fr; }
+      .album-stats { grid-template-columns: repeat(3, 1fr); }
+      .pack-stage { min-width: 0; }
+      .pack-actions, .selection-layout { grid-template-columns: 1fr; }
+      .player-filters { grid-template-columns: 1fr; }
+      .player-filter-reset { width: 100%; }
+      .gacha-rates { grid-template-columns: repeat(2, 1fr); }
+      .gacha-actions { grid-template-columns: 1fr; }
+      .shop-grid, .payment-form { grid-template-columns: 1fr; }
+	      .payment-form .form-group:first-child { grid-column: auto; }
+	      .football-pitch { min-height: 560px; }
+	      .match-stage { padding: 12px; }
+	      .match-score-header { grid-template-columns: 1fr; }
+	      .match-score-team,
+	      .match-score-team:last-child { justify-content: center; text-align: center; }
+	      .match-score-team strong { white-space: normal; }
+	      .live-pitch { height: 310px; }
+	      .pitch-area { left: 25%; width: 50%; height: 12%; }
+      .pitch-area.left { top: 0; }
+      .pitch-area.right { bottom: 0; }
+      .pitch-player { width: min(112px, 30vw); min-height: 44px; }
+      .pitch-player-name { font-size: 10px; }
+      .pitch-title { align-items: flex-start; flex-direction: column; }
+      .pitch-title span:last-child { text-align: left; }
+    }
+
+    /* ─── Football Game Reskin ─────────────────────────────────── */
+    :root {
+      --pitch: #1bb76e;
+      --cyan: #37d7ff;
+      --violet: #7762ff;
+      --orange: #ff8f3d;
+      --surface: rgba(9, 14, 22, 0.86);
+      --surface-strong: rgba(16, 24, 37, 0.96);
+      --line-bright: rgba(255,255,255,0.16);
+    }
+    body {
+      background:
+        radial-gradient(circle at 76% 18%, rgba(55,215,255,0.18), transparent 30%),
+        radial-gradient(circle at 8% 12%, rgba(27,183,110,0.22), transparent 34%),
+        linear-gradient(135deg, #05070c 0%, #08111b 48%, #101013 100%);
+    }
+    body::before {
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(110deg, transparent 0 42%, rgba(27,183,110,0.18) 42% 43%, transparent 43% 100%);
+      background-size: 44px 44px, 44px 44px, 100% 100%;
+      opacity: 0.8;
+    }
+    body[data-profile-theme="night"] {
+      --green-mid: #263b86;
+      --green-light: #37d7ff;
+      --gold: #9fb8ff;
+      --pitch: #4a63ff;
+    }
+    body[data-profile-theme="gold"] {
+      --green-mid: #7b4a16;
+      --green-light: #ffb84f;
+      --gold: #ffd36b;
+      --pitch: #c98a28;
+    }
+    body[data-profile-theme="ocean"] {
+      --green-mid: #0c627c;
+      --green-light: #35d0bd;
+      --gold: #8ee8ff;
+      --pitch: #168bb3;
+    }
+    .app {
+      max-width: 1360px;
+      padding: 20px 22px 48px;
+    }
+    .header {
+      text-align: left;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      min-height: 220px;
+      padding: 28px;
+      border: 1px solid var(--line-bright);
+      border-radius: 8px;
+      margin-bottom: 18px;
+      background:
+        linear-gradient(120deg, rgba(9,14,22,0.88), rgba(9,14,22,0.48)),
+        repeating-linear-gradient(90deg, rgba(27,183,110,0.2) 0 9%, rgba(20,92,63,0.18) 9% 18%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      right: 28px;
+      bottom: -76px;
+      width: 310px;
+      height: 310px;
+      border: 2px solid rgba(255,255,255,0.16);
+      border-radius: 50%;
+    }
+    .header-badge {
+      border-radius: 6px;
+      background: rgba(55,215,255,0.12);
+      border-color: rgba(55,215,255,0.42);
+      color: var(--cyan);
+    }
+    .header h1 {
+      font-size: clamp(48px, 9vw, 104px);
+      max-width: 760px;
+      text-shadow: 0 12px 34px rgba(0,0,0,0.45);
+    }
+    .header p {
+      color: var(--gray-100);
+      max-width: 520px;
+      font-size: 16px;
+    }
+    .trophy-line {
+      position: relative;
+      z-index: 1;
+      align-self: center;
+      width: 160px;
+      height: 160px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
+    }
+    .trophy-line span { animation: none; }
+    .card, .user-bar, .gacha-modal, .result-modal {
+      border-radius: 8px;
+      background: var(--surface);
+      border-color: var(--line-bright);
+      backdrop-filter: blur(14px);
+    }
+    .card {
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      color: var(--cyan);
+      margin-bottom: 16px;
+    }
+    #view-auth.active {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    #view-game.active {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 16px 20px;
+      align-items: start;
+    }
+    #view-game .user-bar {
+      grid-column: 1;
+      grid-row: 1;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 188px;
+      margin: 0;
+      background:
+        linear-gradient(155deg, rgba(27,183,110,0.24), transparent 54%),
+        var(--surface-strong);
+    }
+    .user-bar-left {
+      width: 100%;
+      align-items: center;
+    }
+    .user-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, var(--green-mid), var(--pitch));
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .user-avatar img,
+    .profile-avatar-large img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .user-avatar span,
+    .profile-avatar-large span {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+    }
+    .user-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      line-height: 0.95;
+      letter-spacing: 0.03em;
+    }
+    .user-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .wallet-button, .btn-logout {
+      width: 100%;
+      border-radius: 6px;
+      justify-content: center;
+      min-height: 42px;
+    }
+    .game-nav {
+      grid-column: 1;
+      grid-row: 2;
+      position: sticky;
+      top: 16px;
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 10px;
+      background: var(--surface-strong);
+      border-color: var(--line-bright);
+      border-radius: 8px;
+    }
+    .game-tab {
+      min-height: 52px;
+      text-align: left;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      color: var(--gray-300);
+      background: rgba(255,255,255,0.035);
+    }
+    .game-tab.active {
+      background: linear-gradient(90deg, rgba(27,183,110,0.36), rgba(55,215,255,0.12));
+      border-color: rgba(55,215,255,0.42);
+      color: var(--white);
+    }
+    .game-panel.active {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      min-width: 0;
+    }
+    .vs-display {
+      min-height: 280px;
+      align-items: stretch;
+      border-radius: 8px;
+      background:
+        linear-gradient(90deg, rgba(27,183,110,0.24), rgba(55,215,255,0.08)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.045) 0 8%, transparent 8% 16%);
+      border-color: rgba(255,255,255,0.18);
+      overflow: hidden;
+      position: relative;
+    }
+    .vs-team {
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      padding: 22px;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+    }
+    .vs-flag { font-size: 58px; }
+    .vs-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: 0.03em;
+    }
+    .vs-divider {
+      align-self: center;
+      color: var(--cyan);
+      text-shadow: 0 0 28px rgba(55,215,255,0.62);
+    }
+    .btn {
+      border-radius: 6px;
+      min-height: 48px;
+      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--green-mid), var(--pitch));
+    }
+    .btn-gold {
+      background: linear-gradient(90deg, var(--gold), var(--orange));
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .stat-card {
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.055);
+    }
+    .stat-num, .shop-gems, .selection-detail-title {
+      font-family: 'Bebas Neue', sans-serif;
+    }
+    .album-hero {
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+    }
+    .sticker-card {
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.08), transparent),
+        #1b5d45;
+    }
+    .sticker-card.rarity-epic:not(.locked) { background: linear-gradient(145deg, #234c7b, #1e244d); }
+    .sticker-card.rarity-legendary:not(.locked) { background: linear-gradient(145deg, #a87824, #433115); }
+    .roulette-wrapper, .selection-detail, .football-pitch, .history-item, .shop-pack {
+      border-radius: 8px;
+    }
+    .profile-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+      gap: 16px;
+    }
+    .profile-card {
+      background:
+        linear-gradient(160deg, rgba(27,183,110,0.26), rgba(55,215,255,0.08)),
+        var(--surface-strong);
+    }
+    .profile-preview {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+    .profile-avatar-large {
+      width: 116px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 68px;
+      background: linear-gradient(145deg, var(--green-mid), var(--pitch));
+      border: 1px solid rgba(255,255,255,0.24);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.32);
+    }
+    .profile-name-preview {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 0.95;
+      overflow-wrap: anywhere;
+    }
+    .profile-tag {
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+    .profile-bio-preview {
+      color: var(--gray-300);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .profile-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .profile-metrics div {
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .profile-metrics strong {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 34px;
+      line-height: 1;
+    }
+    .profile-metrics span {
+      color: var(--gray-500);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .profile-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .profile-wide {
+      grid-column: 1 / -1;
+    }
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--white);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+    }
+    .form-group textarea {
+      min-height: 112px;
+      resize: vertical;
+    }
+    .form-group select option {
+      color: #10141b;
+    }
+    .profile-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 0.35fr);
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .danger-zone {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.45fr);
+      gap: 16px;
+      align-items: end;
+      border-color: rgba(231,76,60,0.28);
+      background: linear-gradient(90deg, rgba(192,57,43,0.13), rgba(9,14,22,0.86));
+    }
+    .danger-zone p {
+      color: var(--gray-300);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .delete-account-box {
+      display: grid;
+      gap: 8px;
+    }
+    .delete-account-box input {
+      width: 100%;
+      min-height: 46px;
+      background: rgba(0,0,0,0.24);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: var(--white);
+      padding: 0 12px;
+    }
+    @media (max-width: 900px) {
+      .header {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+      .trophy-line {
+        display: none;
+      }
+      #view-game.active {
+        grid-template-columns: 1fr;
+      }
+      #view-game .user-bar,
+      .game-nav,
+      .game-panel.active {
+        grid-column: 1;
+        grid-row: auto;
+      }
+      .game-nav {
+        position: static;
+        grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+      }
+      .game-tab {
+        text-align: center;
+      }
+      .profile-layout,
+      .profile-form-grid,
+      .danger-zone,
+      .profile-actions {
+        grid-template-columns: 1fr;
+      }
+      .profile-preview {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- ─── Header ─── -->
+    <div class="header">
+      <div class="header-badge"><img class="ui-icon" src="assets/icons/ball.svg" alt=""> FIFA World Cup 2026</div>
+      <h1>SIMULADOR <span>COPA</span><br>DO MUNDO</h1>
+      <p>Monte sua própria seleção com cartas da Copa. Enfrente o mundo. Seja campeão.</p>
+      <div class="trophy-line">
+        <span><img class="ui-icon ui-icon-lg" src="assets/icons/medal.svg" alt="Medalha"></span>
+        <span><img class="ui-icon ui-icon-lg" src="assets/icons/trophy.svg" alt="Troféu"></span>
+        <span><img class="ui-icon ui-icon-lg" src="assets/icons/trophy.svg" alt="Troféu"></span>
+        <span><img class="ui-icon ui-icon-lg" src="assets/icons/medal.svg" alt="Medalha"></span>
+      </div>
+    </div>
+
+    <!-- ─── Auth View ─── -->
+    <div id="view-auth" class="view active">
+      <div class="card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchAuthTab('login')">Entrar</button>
+          <button class="auth-tab" onclick="switchAuthTab('register')">Cadastrar</button>
+        </div>
+
+        <!-- Login -->
+        <div id="form-login">
+          <div class="alert alert-error" id="login-error"></div>
+          <div class="form-group">
+            <label>Usuário</label>
+            <input type="text" id="login-username" placeholder="seu_usuario" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary" onclick="doLogin()" id="btn-login">
+            Entrar no Simulador
+          </button>
+        </div>
+
+        <!-- Register -->
+        <div id="form-register" style="display:none">
+          <div class="alert alert-error" id="register-error"></div>
+          <div class="form-group">
+            <label>Usuário</label>
+            <input type="text" id="reg-username" placeholder="seu_usuario" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="reg-email" placeholder="voce@exemplo.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label>Senha (mín. 6 caracteres)</label>
+            <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
+          </div>
+          <button class="btn btn-primary" onclick="doRegister()" id="btn-register">
+            Criar conta e jogar
+          </button>
+        </div>
+      </div>
+
+      <p style="text-align:center;font-size:12px;color:var(--gray-700);margin-top:12px">
+        Backend em Python · FastAPI · SQLite · JWT
+      </p>
+    </div>
+
+    <!-- ─── Game View ─── -->
+    <div id="view-game" class="view">
+
+      <!-- User bar -->
+      <div class="user-bar" id="user-bar">
+        <div class="user-bar-left">
+          <div class="user-avatar" id="user-avatar">?</div>
+          <div>
+            <div class="user-name" id="user-display-name">—</div>
+            <div class="user-sub">Pronto para a Copa!</div>
+          </div>
+        </div>
+        <div class="user-actions">
+          <button class="wallet-button" onclick="openGemShop()"><img class="ui-icon" src="assets/icons/gem.svg" alt=""> <span id="gem-balance">100</span></button>
+          <button class="btn-logout" onclick="doLogout()">Sair</button>
+        </div>
+      </div>
+
+      <div class="game-nav" aria-label="Navegação principal">
+        <button class="game-tab active" id="tab-simulate" onclick="switchGameTab('simulate')">Simular</button>
+        <button class="game-tab" id="tab-selection" onclick="switchGameTab('selection')">Minha Seleção</button>
+        <button class="game-tab" id="tab-club" onclick="switchGameTab('club')">Clube</button>
+        <button class="game-tab" id="tab-profile" onclick="switchGameTab('profile')">Perfil</button>
+        <button class="game-tab admin-only" id="tab-admin" onclick="switchGameTab('admin')" style="display:none">Admin</button>
+      </div>
+
+      <div id="panel-simulate" class="game-panel active">
+      <!-- VS preview -->
+      <div class="vs-display" id="vs-display">
+        <div class="vs-team" id="vs-user">
+          <span class="vs-flag"><img class="ui-icon ui-icon-lg" src="assets/icons/star.svg" alt=""></span>
+          <div class="vs-name">Minha Seleção</div>
+          <div class="vs-rating" id="my-squad-rating">Força 1.0</div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="vs-team" id="vs-opp">
+          <span class="vs-flag"><img class="ui-icon ui-icon-lg" src="assets/icons/controller.svg" alt=""></span>
+          <div class="vs-name">Rival aleatório</div>
+          <div class="vs-rating">Cartas de outro player</div>
+        </div>
+      </div>
+
+	      <button type="button" class="btn btn-gold" onclick="doSimulate(event)" id="btn-simulate">
+        <img class="ui-icon" src="assets/icons/trophy.svg" alt=""> Encontrar Rival
+      </button>
+
+      <!-- Match History -->
+      <div class="card" style="margin-top:32px">
+        <div class="card-title"><span class="icon-title"><img class="ui-icon" src="assets/icons/chart.svg" alt=""> Desempenho</span></div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-num win" id="stat-wins">0</div><div class="stat-label">Vitórias</div></div>
+          <div class="stat-card"><div class="stat-num draw" id="stat-draws">0</div><div class="stat-label">Empates</div></div>
+          <div class="stat-card"><div class="stat-num loss" id="stat-losses">0</div><div class="stat-label">Derrotas</div></div>
+        </div>
+        <div class="card-title" style="margin-bottom:12px"><span class="icon-title"><img class="ui-icon" src="assets/icons/clock.svg" alt=""> Últimas Partidas</span></div>
+        <div class="history-list" id="history-list">
+          <div class="history-empty">Nenhuma partida ainda. Vá jogar!</div>
+        </div>
+        <button class="btn btn-danger" onclick="doClearHistory()" id="btn-clear" style="display:none">
+          <img class="ui-icon" src="assets/icons/trash.svg" alt=""> Limpar histórico
+        </button>
+      </div>
+      </div>
+
+      <div id="panel-selection" class="game-panel">
+        <div class="card">
+          <div class="album-hero">
+            <div>
+              <div class="card-title"><span class="icon-title"><img class="ui-icon" src="assets/icons/spark.svg" alt=""> Minha seleção</span></div>
+              <p style="color:var(--gray-500);font-size:14px;line-height:1.6">
+                Você começa com 11 jogadores básicos. A roleta libera cartas melhores e sua escalação usa automaticamente os melhores jogadores.
+              </p>
+              <div class="album-stats">
+                <div class="stat-card"><div class="stat-num win" id="squad-rating">1.0</div><div class="stat-label">Força</div></div>
+                <div class="stat-card"><div class="stat-num" id="album-owned">0</div><div class="stat-label">Jogadores</div></div>
+                <div class="stat-card"><div class="stat-num draw" id="album-copies">0</div><div class="stat-label">Cópias</div></div>
+              </div>
+            </div>
+            <div class="pack-stage">
+              <div class="pack-actions">
+	                <button type="button" class="btn btn-primary" onclick="openPlayerPack(1, event)" id="btn-player-pack">Abrir Jogador x1 · 10 <img class="ui-icon" src="assets/icons/gem.svg" alt=""></button>
+	                <button type="button" class="btn btn-primary" onclick="openPlayerPack(10, event)" id="btn-player-pack-10">Abrir Jogadores x10 · 90 <img class="ui-icon" src="assets/icons/gem.svg" alt=""></button>
+              </div>
+              <div class="gacha-rates">
+                <div class="gacha-rate"><span>Comum</span><span>60%</span></div>
+                <div class="gacha-rate"><span>Raro</span><span>25%</span></div>
+                <div class="gacha-rate"><span>Épico</span><span>10%</span></div>
+                <div class="gacha-rate"><span>Lendário</span><span>5%</span></div>
+              </div>
+              <div class="pack-reveal" id="pack-reveal"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="selection-layout">
+          <div class="card">
+            <div class="card-title"><span class="icon-title"><img class="ui-icon" src="assets/icons/lineup.svg" alt=""> Minha escalação</span></div>
+            <div id="my-lineup-grid" class="album-grid">
+              <div class="history-empty">Carregando sua escalação...</div>
+            </div>
+            <div class="lineup-tools">
+              <span id="lineup-count">11 / 11 selecionados</span>
+              <button class="btn btn-gold" onclick="saveLineup()" id="btn-save-lineup" style="max-width:220px">Salvar escalação</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="icon-title"><img class="ui-icon" src="assets/icons/cards.svg" alt=""> Cartas liberadas</span></div>
+            <div class="player-filters">
+              <div class="player-filter-field">
+                <label for="player-name-filter">Nome</label>
+                <input type="search" id="player-name-filter" placeholder="Buscar jogador" oninput="updatePlayerFilters()">
+              </div>
+              <div class="player-filter-field">
+                <label for="player-rarity-filter">Raridade</label>
+                <select id="player-rarity-filter" onchange="updatePlayerFilters()">
+                  <option value="all">Todas</option>
+                  <option value="common">Comum</option>
+                  <option value="rare">Raro</option>
+                  <option value="epic">Épico</option>
+                  <option value="legendary">Lendário</option>
+                </select>
+              </div>
+              <button type="button" class="player-filter-reset" onclick="resetPlayerFilters()">
+                <img class="ui-icon" src="assets/icons/trash.svg" alt=""> Limpar
+              </button>
+            </div>
+            <div id="selection-detail" class="selection-detail">
+              <div class="history-empty">Abra a roleta para fortalecer sua seleção.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-profile" class="game-panel">
+        <div class="profile-layout">
+          <div class="card profile-card">
+            <div class="card-title">Meu jogador</div>
+            <div class="profile-preview">
+              <div class="profile-avatar-large" id="profile-avatar-preview">?</div>
+              <div>
+                <div class="profile-name-preview" id="profile-name-preview">Jogador</div>
+                <div class="profile-tag" id="profile-username-preview">@usuario</div>
+                <p class="profile-bio-preview" id="profile-bio-preview">Personalize seu perfil para entrar em campo com estilo.</p>
+              </div>
+            </div>
+            <div class="profile-metrics">
+              <div><strong id="profile-gems-preview">0</strong><span>Gemas</span></div>
+              <div><strong id="profile-cards-preview">0</strong><span>Cartas</span></div>
+              <div><strong id="profile-rating-preview">1.0</strong><span>Força</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Personalização</div>
+            <div class="profile-form-grid">
+              <div class="form-group">
+                <label>Nome de exibição</label>
+                <input type="text" id="profile-display-name" maxlength="80" placeholder="Nome no vestiário">
+              </div>
+              <div class="form-group">
+                <label>E-mail</label>
+                <input type="email" id="profile-email" placeholder="voce@exemplo.com">
+              </div>
+              <div class="form-group profile-wide">
+                <label>Bio</label>
+                <textarea id="profile-bio" maxlength="240" placeholder="Conte algo sobre seu estilo de jogo"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Tema do clube</label>
+                <select id="profile-theme" onchange="applyProfileTheme(this.value)">
+                  <option value="stadium">Estádio</option>
+                  <option value="night">Noite</option>
+                  <option value="gold">Dourado</option>
+                  <option value="ocean">Azul</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Foto</label>
+                <input type="file" id="profile-avatar-input" accept="image/*" onchange="handleAvatarFile(event)">
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn-primary" onclick="saveProfile()" id="btn-save-profile">Salvar perfil</button>
+              <button class="btn btn-secondary" onclick="removeProfilePhoto()" id="btn-remove-photo">Remover foto</button>
+            </div>
+            <div class="alert alert-success" id="profile-success"></div>
+            <div class="alert alert-error" id="profile-error"></div>
+          </div>
+
+          <div class="card danger-zone">
+            <div>
+              <div class="card-title">Zona de risco</div>
+              <p>Excluir a conta remove seu usuário, histórico, cartas, escalação e saldo de gemas.</p>
+            </div>
+            <div class="delete-account-box">
+              <input type="password" id="delete-password" placeholder="Digite sua senha">
+              <button class="btn btn-danger" onclick="deleteAccount()" id="btn-delete-account">Excluir conta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-club" class="game-panel">
+        <div class="profile-layout">
+          <div class="card profile-card">
+            <div class="card-title">Identidade do clube</div>
+            <div class="profile-preview">
+              <div class="profile-avatar-large" id="club-badge-preview"></div>
+              <div>
+                <div class="profile-name-preview" id="club-name-preview">Minha Seleção</div>
+                <div class="profile-tag" id="club-formation-preview">4-3-3</div>
+                <p class="profile-bio-preview">O nome, escudo e formação aparecem na simulação; os rivais são montados aleatoriamente.</p>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Modificar time</div>
+            <div class="profile-form-grid">
+              <div class="form-group profile-wide">
+                <label>Nome do time</label>
+                <input type="text" id="club-team-name" maxlength="80" placeholder="Ex: Bahia Stars FC">
+              </div>
+              <div class="form-group">
+                <label>Escudo</label>
+                <select id="club-team-badge" onchange="renderClubForm()">
+                  <option value="star">Estrela</option>
+                  <option value="ball">Bola</option>
+                  <option value="trophy">Troféu</option>
+                  <option value="controller">Controle</option>
+                  <option value="spark">Brilho</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Formação</label>
+                <select id="club-formation" onchange="renderClubForm()">
+                  <option value="4-3-3">4-3-3</option>
+                  <option value="4-4-2">4-4-2</option>
+                  <option value="3-5-2">3-5-2</option>
+                  <option value="4-2-3-1">4-2-3-1</option>
+                </select>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button class="btn btn-primary" onclick="saveClubSettings()" id="btn-save-club">Salvar time</button>
+            </div>
+            <div class="alert alert-success" id="club-success"></div>
+            <div class="alert alert-error" id="club-error"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-admin" class="game-panel">
+        <div class="card">
+          <div class="card-title">Administrador da Copa</div>
+          <div class="profile-form-grid">
+            <div class="form-group">
+              <label>Mandante</label>
+              <select id="admin-home-team"></select>
+            </div>
+            <div class="form-group">
+              <label>Visitante</label>
+              <select id="admin-away-team"></select>
+            </div>
+            <div class="form-group">
+              <label>Gols mandante</label>
+              <input type="number" id="admin-home-score" value="1" min="0" max="20">
+            </div>
+            <div class="form-group">
+              <label>Gols visitante</label>
+              <input type="number" id="admin-away-score" value="0" min="0" max="20">
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-primary" onclick="saveCupMatch()" id="btn-save-cup-match">Salvar resultado</button>
+            <button class="btn btn-secondary" onclick="generateCupMatches()" id="btn-generate-cup">Gerar automaticamente</button>
+          </div>
+          <div class="alert alert-success" id="admin-success"></div>
+          <div class="alert alert-error" id="admin-error"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Resultados salvos</div>
+          <div class="history-list" id="admin-cup-matches">
+            <div class="history-empty">Nenhum resultado cadastrado.</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Bônus por seleção</div>
+          <div class="history-list" id="admin-momentum">
+            <div class="history-empty">Sem bônus cadastrados.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+	  </div>
+
+	  <!-- ─── Live Match Animation ─── -->
+	  <div class="match-overlay" id="match-overlay" aria-live="polite">
+	    <div class="match-stage">
+	      <div class="match-score-header">
+	        <div class="match-score-team">
+	          <span id="match-home-badge"><img class="ui-icon" src="assets/icons/star.svg" alt=""></span>
+	          <strong id="match-home-name">Minha Seleção</strong>
+	        </div>
+	        <div class="match-score-center">
+	          <span class="match-clock" id="match-clock">00'</span>
+	          <strong><span id="match-home-score">0</span> x <span id="match-away-score">0</span></strong>
+	        </div>
+	        <div class="match-score-team">
+	          <strong id="match-away-name">Rival aleatório</strong>
+	          <span id="match-away-badge"><img class="ui-icon" src="assets/icons/controller.svg" alt=""></span>
+	        </div>
+	      </div>
+	      <div class="live-pitch" id="live-pitch">
+	        <div class="live-box home"></div>
+	        <div class="live-box away"></div>
+	        <div class="match-player home p1"></div>
+	        <div class="match-player home p2"></div>
+	        <div class="match-player home p3"></div>
+	        <div class="match-player away p1"></div>
+	        <div class="match-player away p2"></div>
+	        <div class="match-player away p3"></div>
+	        <div class="match-ball"></div>
+	        <div class="match-goal-flash" id="match-goal-flash"></div>
+	      </div>
+	      <div class="match-live-event" id="match-live-event">Times entrando em campo</div>
+	    </div>
+	  </div>
+
+	  <!-- ─── Result Modal ─── -->
+	  <div class="result-overlay" id="result-overlay" onclick="closeResult(event)">
+    <div class="result-modal">
+      <div class="result-badge" id="result-badge">VITÓRIA</div>
+
+      <div class="scoreboard">
+        <div class="score-team">
+          <span class="score-flag" id="res-user-flag">🇧🇷</span>
+          <div class="score-name" id="res-user-name">Brasil</div>
+          <div class="score-num" id="res-user-score">2</div>
+        </div>
+        <div class="score-divider">X</div>
+        <div class="score-team">
+          <span class="score-flag" id="res-opp-flag">🇩🇪</span>
+          <div class="score-name" id="res-opp-name">Alemanha</div>
+          <div class="score-num" id="res-opp-score">1</div>
+        </div>
+      </div>
+
+      <p class="result-narrative" id="res-narrative">Narrativa da partida aqui.</p>
+
+      <div class="pitch-wrap">
+        <div class="pitch-title">
+          <span>Campo tático da sua seleção</span>
+          <span>Jogadores possuídos aparecem acesos; vagas sem figurinha não geram bônus</span>
+        </div>
+        <div class="football-pitch" id="tactical-field"></div>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-gold" onclick="closeResult(null)">Jogar novamente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Player Roulette Modal ─── -->
+  <div class="gacha-overlay" id="gacha-overlay">
+    <div class="gacha-modal">
+      <div class="gacha-title">
+        <div>
+          <span id="gacha-counter">0 / 0</span>
+          <h2>Roleta de Jogadores</h2>
+        </div>
+      </div>
+	      <div class="roulette-wrapper">
+	        <div class="roulette-center-line"></div>
+	        <div class="roulette-track" id="roulette-track"></div>
+	      </div>
+	      <div class="gacha-status" id="gacha-status">Aguardando roleta</div>
+	      <div class="gacha-actions">
+        <button type="button" class="btn btn-primary" onclick="skipGachaAnimation()" id="btn-gacha-skip">Pular animação</button>
+        <button type="button" class="btn btn-gold" onclick="closeGachaModal()" id="btn-gacha-close">Fechar</button>
+      </div>
+      <div class="gacha-results" id="gacha-results"></div>
+    </div>
+  </div>
+
+  <!-- ─── Gem Shop Modal ─── -->
+  <div class="gacha-overlay" id="gem-shop-overlay">
+    <div class="gacha-modal">
+      <div class="gacha-title">
+        <div>
+          <span>Loja ilustrativa</span>
+          <h2>Comprar Gemas</h2>
+        </div>
+        <button class="btn-logout" onclick="closeGemShop()">Fechar</button>
+      </div>
+
+      <div class="shop-grid">
+        <div class="shop-pack selected" data-package="starter" onclick="selectGemPackage('starter')">
+          <div class="shop-gems">120 <img class="ui-icon" src="assets/icons/gem.svg" alt=""></div>
+          <div class="shop-price">R$ 4,90</div>
+        </div>
+        <div class="shop-pack" data-package="value" onclick="selectGemPackage('value')">
+          <div class="shop-gems">280 <img class="ui-icon" src="assets/icons/gem.svg" alt=""></div>
+          <div class="shop-price">R$ 9,90</div>
+        </div>
+        <div class="shop-pack" data-package="elite" onclick="selectGemPackage('elite')">
+          <div class="shop-gems">650 <img class="ui-icon" src="assets/icons/gem.svg" alt=""></div>
+          <div class="shop-price">R$ 19,90</div>
+        </div>
+      </div>
+
+      <div class="payment-form">
+        <div class="form-group">
+          <label>Número do cartão</label>
+          <input id="fake-card-number" value="4242 4242 4242 4242" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>Validade</label>
+          <input id="fake-card-expiry" value="12/29" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label>CVV</label>
+          <input id="fake-card-cvv" value="123" inputmode="numeric">
+        </div>
+      </div>
+
+      <p style="color:var(--gray-500);font-size:12px;line-height:1.5;margin:4px 0 14px">
+        Pagamento apenas simulado para o projeto. Nenhum dado é enviado para cobrança real.
+      </p>
+      <button class="btn btn-gold" onclick="confirmGemPurchase()" id="btn-gem-purchase">Confirmar compra fictícia</button>
+    </div>
+  </div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────────────────────
+    const API = 'http://localhost:8000';
+
+    // ─── State ─────────────────────────────────────────────────────────────
+    let token = localStorage.getItem('wc_token') || null;
+    let username = localStorage.getItem('wc_username') || null;
+    let userGems = Number(localStorage.getItem('wc_gems') || 100);
+    let albumCollection = null;
+    let selectedLineupIds = new Set();
+    let selectedGemPackage = 'starter';
+    let gachaRewards = [];
+    let gachaCurrentSpin = 0;
+    let gachaSkipRequested = false;
+	    let gachaAnimTimeout = null;
+	    let gachaRevealRemaining = null;
+	    let gachaIsRunning = false;
+	    let gachaOpeningId = null;
+	    let userProfile = null;
+	    let pendingAvatarData = null;
+	    let allTeams = [];
+	    let cupMatches = [];
+	    let teamMomentum = [];
+	    let matchAnimationTimers = [];
+    let playerFilters = {
+      name: '',
+      rarity: 'all'
+    };
+
+    // ─── Init ───────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (token) {
+        await initGame();
+      }
+    });
+
+    async function initGame() {
+      showView('game');
+      await loadProfile();
+      updateUserBar();
+      await loadTeams();
+      await loadHistory();
+      await loadCollection();
+    }
+
+    // ─── Auth Tab Switch ────────────────────────────────────────────────────
+    function switchAuthTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+    }
+
+    // ─── Auth Handlers ──────────────────────────────────────────────────────
+    async function doLogin() {
+      const user = document.getElementById('login-username').value.trim();
+      const pass = document.getElementById('login-password').value;
+      if (!user || !pass) return showAlert('login-error', 'Preencha todos os campos');
+
+      setLoading('btn-login', true);
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao entrar');
+
+        token = data.access_token;
+        username = data.username;
+        userGems = data.gems ?? userGems;
+        localStorage.setItem('wc_token', token);
+        localStorage.setItem('wc_username', username);
+        localStorage.setItem('wc_gems', String(userGems));
+        await initGame();
+      } catch (e) {
+        showAlert('login-error', e.message);
+      } finally {
+        setLoading('btn-login', false);
+      }
+    }
+
+    async function doRegister() {
+      const user = document.getElementById('reg-username').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const pass = document.getElementById('reg-password').value;
+      if (!user || !email || !pass) return showAlert('register-error', 'Preencha todos os campos');
+
+      setLoading('btn-register', true);
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, email, password: pass })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao cadastrar');
+
+        token = data.access_token;
+        username = data.username;
+        userGems = data.gems ?? 100;
+        localStorage.setItem('wc_token', token);
+        localStorage.setItem('wc_username', username);
+        localStorage.setItem('wc_gems', String(userGems));
+        await initGame();
+      } catch (e) {
+        showAlert('register-error', e.message);
+      } finally {
+        setLoading('btn-register', false);
+      }
+    }
+
+    function doLogout() {
+      token = null; username = null;
+      albumCollection = null;
+      userProfile = null;
+      pendingAvatarData = null;
+      selectedLineupIds = new Set();
+      playerFilters = { name: '', rarity: 'all' };
+      const nameFilter = document.getElementById('player-name-filter');
+      const rarityFilter = document.getElementById('player-rarity-filter');
+      if (nameFilter) nameFilter.value = '';
+      if (rarityFilter) rarityFilter.value = 'all';
+      localStorage.removeItem('wc_token');
+      localStorage.removeItem('wc_username');
+      localStorage.removeItem('wc_gems');
+      showView('auth');
+    }
+
+    function switchGameTab(tab) {
+      const requestedTab = ['simulate', 'selection', 'club', 'profile', 'admin'].includes(tab) ? tab : 'simulate';
+      const activeTab = requestedTab === 'admin' && !userProfile?.is_admin ? 'simulate' : requestedTab;
+      document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`tab-${activeTab}`).classList.add('active');
+      document.getElementById(`panel-${activeTab}`).classList.add('active');
+      if (activeTab === 'selection') refreshCollections();
+      if (activeTab === 'club') renderClubForm();
+      if (activeTab === 'profile') renderProfileForm();
+      if (activeTab === 'admin') refreshAdminPanel();
+    }
+
+    async function loadProfile() {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) return;
+        userProfile = await res.json();
+        username = userProfile.username || username;
+        userGems = typeof userProfile.gems === 'number' ? userProfile.gems : userGems;
+        localStorage.setItem('wc_username', username);
+        localStorage.setItem('wc_gems', String(userGems));
+        applyProfileTheme(userProfile.profile_theme || 'stadium');
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = userProfile.is_admin ? '' : 'none';
+        });
+        renderClubForm();
+        renderProfileForm();
+      } catch {}
+    }
+
+    function displayProfileName() {
+      return userProfile?.display_name || username || 'Jogador';
+    }
+
+    function avatarMarkup(sizeClass = '') {
+      const name = displayProfileName();
+      const avatar = pendingAvatarData || userProfile?.avatar_data;
+      if (avatar) return `<img src="${avatar}" alt="${escapeHtml(name)}">`;
+      return `<span>${escapeHtml(name[0]?.toUpperCase() || '?')}</span>`;
+    }
+
+    function applyProfileTheme(theme) {
+      document.body.dataset.profileTheme = theme || 'stadium';
+    }
+
+    function icon(name, alt = '') {
+      return `<img class="ui-icon" src="assets/icons/${name}.svg" alt="${escapeHtml(alt)}">`;
+    }
+
+    function largeIcon(name, alt = '') {
+      return `<img class="ui-icon ui-icon-lg" src="assets/icons/${name}.svg" alt="${escapeHtml(alt)}">`;
+    }
+
+    // ─── Teams ──────────────────────────────────────────────────────────────
+    async function loadTeams() {
+      try {
+        const res = await fetch(`${API}/teams`);
+        if (res.ok) {
+          allTeams = await res.json();
+          populateTeamSelects();
+        }
+      } catch {}
+      updateVsDisplay();
+    }
+
+    async function refreshCollections() {
+      await loadCollection();
+    }
+
+    function starsForRating(r) {
+      const full = Math.floor(r);
+      const amount = Math.max(1, Math.round(full + (r % 1 >= 0.5 ? 1 : 0)));
+      return `<span class="rating-icons">${Array.from({ length: amount }).map(() => icon('star', 'Estrela')).join('')}</span>`;
+    }
+
+    function updateVsDisplay() {
+      const user = document.getElementById('vs-user');
+      const opp = document.getElementById('vs-opp');
+
+      const squadRating = calculateSquadRating();
+      user.innerHTML = `
+        <span class="vs-flag">${largeIcon(userProfile?.custom_team_badge || 'star', 'Meu time')}</span>
+        <div class="vs-name">${escapeHtml(userProfile?.custom_team_name || 'Minha Seleção')}</div>
+        <div class="vs-rating">Força ${squadRating.toFixed(1)}</div>
+      `;
+
+      opp.innerHTML = `
+        <span class="vs-flag">${largeIcon('controller', 'Rival')}</span>
+        <div class="vs-name">Rival aleatório</div>
+        <div class="vs-rating">Seleção gerada com cartas reais</div>
+      `;
+    }
+
+    function updateSimulateButton() {
+      document.getElementById('btn-simulate').disabled = false;
+	    }
+
+	    // ─── Simulation ─────────────────────────────────────────────────────────
+	    function scheduleMatchAnimation(delay, callback) {
+	      const timer = setTimeout(callback, delay);
+	      matchAnimationTimers.push(timer);
+	      return timer;
+	    }
+
+	    function clearMatchAnimationTimers() {
+	      matchAnimationTimers.forEach(timer => clearTimeout(timer));
+	      matchAnimationTimers = [];
+	    }
+
+	    function restartLivePitch() {
+	      const pitch = document.getElementById('live-pitch');
+	      if (!pitch) return;
+	      pitch.classList.remove('playing');
+	      void pitch.offsetWidth;
+	      pitch.classList.add('playing');
+	    }
+
+	    function setMatchOverlayTeams(data = {}) {
+	      const homeName = data.user_team || userProfile?.custom_team_name || 'Minha Seleção';
+	      const awayName = data.opponent_team || 'Rival aleatório';
+	      document.getElementById('match-home-badge').innerHTML = largeIcon(userProfile?.custom_team_badge || 'star', 'Meu time');
+	      document.getElementById('match-away-badge').innerHTML = largeIcon('controller', 'Rival');
+	      document.getElementById('match-home-name').textContent = homeName;
+	      document.getElementById('match-away-name').textContent = awayName;
+	    }
+
+	    function setMatchScore(homeScore, awayScore) {
+	      document.getElementById('match-home-score').textContent = homeScore;
+	      document.getElementById('match-away-score').textContent = awayScore;
+	    }
+
+	    function setMatchEvent(message, minute = null) {
+	      if (minute !== null) document.getElementById('match-clock').textContent = `${String(minute).padStart(2, '0')}'`;
+	      document.getElementById('match-live-event').textContent = message;
+	    }
+
+	    function flashGoal(team) {
+	      const flash = document.getElementById('match-goal-flash');
+	      if (!flash) return;
+	      flash.style.setProperty('--flash-x', team === 'home' ? '88%' : '12%');
+	      flash.classList.remove('show');
+	      void flash.offsetWidth;
+	      flash.classList.add('show');
+	    }
+
+	    function showMatchWarmup(data = {}) {
+	      clearMatchAnimationTimers();
+	      setMatchOverlayTeams(data);
+	      setMatchScore(0, 0);
+	      setMatchEvent('Times entrando em campo', 0);
+	      const overlay = document.getElementById('match-overlay');
+	      overlay.classList.remove('ending');
+	      overlay.classList.add('show');
+	      restartLivePitch();
+	    }
+
+	    function hideMatchAnimation() {
+	      return new Promise(resolve => {
+	        const overlay = document.getElementById('match-overlay');
+	        const pitch = document.getElementById('live-pitch');
+	        overlay.classList.add('ending');
+	        setTimeout(() => {
+	          overlay.classList.remove('show', 'ending');
+	          if (pitch) pitch.classList.remove('playing');
+	          clearMatchAnimationTimers();
+	          resolve();
+	        }, 260);
+	      });
+	    }
+
+	    function stopMatchAnimation() {
+	      clearMatchAnimationTimers();
+	      document.getElementById('match-overlay').classList.remove('show', 'ending');
+	      document.getElementById('live-pitch')?.classList.remove('playing');
+	    }
+
+	    function buildGoalSequence(data) {
+	      const sequence = [];
+	      let homeGoals = Math.max(0, Number(data.user_score || 0));
+	      let awayGoals = Math.max(0, Number(data.opponent_score || 0));
+	      while (homeGoals > 0 || awayGoals > 0) {
+	        if ((homeGoals >= awayGoals && homeGoals > 0) || awayGoals === 0) {
+	          sequence.push('home');
+	          homeGoals--;
+	        }
+	        if ((awayGoals > homeGoals && awayGoals > 0) || (homeGoals === 0 && awayGoals > 0)) {
+	          sequence.push('away');
+	          awayGoals--;
+	        }
+	      }
+	      return sequence;
+	    }
+
+	    async function playMatchAnimation(data) {
+	      showMatchWarmup(data);
+	      const goals = buildGoalSequence(data);
+	      const homeTeam = data.user_team || 'Minha Seleção';
+	      const awayTeam = data.opponent_team || 'Rival';
+	      let homeScore = 0;
+	      let awayScore = 0;
+
+	      scheduleMatchAnimation(450, () => setMatchEvent('Bola rolando no meio-campo', 5));
+	      scheduleMatchAnimation(1000, () => setMatchEvent('Pressão alta e troca de passes rápida', 18));
+
+	      if (!goals.length) {
+	        scheduleMatchAnimation(1700, () => setMatchEvent('Defesa corta o cruzamento na pequena área', 36));
+	        scheduleMatchAnimation(2550, () => setMatchEvent('Chute colocado passa perto da trave', 68));
+	      } else {
+	        const spacing = goals.length > 1 ? Math.max(260, Math.min(720, 2300 / (goals.length - 1))) : 0;
+	        goals.forEach((team, index) => {
+	          const minute = Math.min(89, 24 + Math.round(index * 56 / Math.max(goals.length - 1, 1)));
+	          scheduleMatchAnimation(1450 + index * spacing, () => {
+	            if (team === 'home') {
+	              homeScore++;
+	              setMatchEvent(`${homeTeam} balança a rede`, minute);
+	            } else {
+	              awayScore++;
+	              setMatchEvent(`${awayTeam} responde com gol`, minute);
+	            }
+	            setMatchScore(homeScore, awayScore);
+	            flashGoal(team);
+	          });
+	        });
+	      }
+
+	      scheduleMatchAnimation(3820, () => {
+	        setMatchScore(data.user_score, data.opponent_score);
+	        setMatchEvent('Apito final', 90);
+	      });
+
+	      await new Promise(resolve => scheduleMatchAnimation(4520, resolve));
+	      await hideMatchAnimation();
+	    }
+
+	    async function doSimulate(event) {
+	      event?.preventDefault();
+	      setLoading('btn-simulate', true);
+
+	      try {
+	        const res = await fetch(`${API}/simulate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({})
+	        });
+
+	        if (res.status === 401) { stopMatchAnimation(); doLogout(); return; }
+	        const data = await res.json();
+	        if (!res.ok) throw new Error(data.detail || 'Erro na simulação');
+
+	        if (data.simulation_id) {
+	          try {
+	            await commitMatchSimulation(data.simulation_id);
+	          } catch (commitError) {
+	            console.warn('Partida ja simulada; confirmacao antecipada falhou.', commitError);
+	          }
+	        }
+	        await playMatchAnimation(data);
+	        if (data.simulation_id) {
+	          try {
+	            await commitMatchSimulation(data.simulation_id);
+	          } catch (commitError) {
+	            console.warn('Partida ja simulada; confirmacao posterior falhou.', commitError);
+	          }
+	        }
+	        showResult(data);
+	        await loadHistory();
+	        await loadCollection();
+	      } catch (e) {
+	        stopMatchAnimation();
+	        alert('Erro: ' + e.message);
+	      } finally {
+	        setLoading('btn-simulate', false);
+      }
+    }
+
+    function showResult(data) {
+      const badge = document.getElementById('result-badge');
+      const labels = {
+        win: `${icon('trophy', 'Troféu')} VITÓRIA!`,
+        loss: `${icon('ball', 'Bola')} DERROTA`,
+        draw: `${icon('lineup', 'Escalação')} EMPATE`
+      };
+      badge.textContent = labels[data.result] || data.result.toUpperCase();
+      badge.innerHTML = labels[data.result] || escapeHtml(data.result.toUpperCase());
+      badge.className = `result-badge ${data.result}`;
+
+      document.getElementById('res-user-flag').innerHTML = largeIcon(userProfile?.custom_team_badge || 'star', 'Meu time');
+      document.getElementById('res-user-name').textContent = data.user_team;
+      document.getElementById('res-user-score').textContent = data.user_score;
+      document.getElementById('res-opp-flag').innerHTML = largeIcon('controller', 'Rival');
+      document.getElementById('res-opp-name').textContent = data.opponent_team;
+      document.getElementById('res-opp-score').textContent = data.opponent_score;
+      document.getElementById('res-narrative').textContent = data.narrative;
+      renderTacticalField(data);
+
+      document.getElementById('result-overlay').classList.add('show');
+
+      if (data.result === 'win') spawnConfetti();
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function playerInitials(name) {
+      const parts = String(name || '?').trim().split(/\s+/).filter(Boolean);
+      return (parts.length ? parts.slice(0, 2).map(part => part[0]).join('') : '?').toUpperCase();
+    }
+
+    function playerPhotoMarkup(player, owned = true) {
+      const fallback = owned ? playerInitials(player?.name) : '?';
+      const photo = owned ? String(player?.photo_url || '').trim() : '';
+      if (!photo) {
+        return `<div class="sticker-photo sticker-photo-fallback"><span>${escapeHtml(fallback)}</span></div>`;
+      }
+      return `
+        <div class="sticker-photo" data-fallback="${escapeHtml(fallback)}">
+          <img src="${escapeHtml(photo)}" alt="Foto de ${escapeHtml(player.name)}" loading="lazy" onerror="handlePlayerPhotoError(this)">
+        </div>
+      `;
+    }
+
+    function handlePlayerPhotoError(img) {
+      const photo = img.closest('.sticker-photo');
+      if (photo) photo.classList.add('missing');
+      img.remove();
+    }
+
+    function positionOrder(position) {
+      return { 'Atacante': 0, 'Meio-Campo': 1, 'Zagueiro': 2, 'Goleiro': 3 }[position] ?? 4;
+    }
+
+    function sortedLineup(players) {
+      return [...(players || [])].sort((a, b) =>
+        positionOrder(a.position) - positionOrder(b.position) || b.rating - a.rating
+      );
+    }
+
+    function spread(index, total, min, max) {
+      if (total <= 1) return (min + max) / 2;
+      return min + ((max - min) * index / (total - 1));
+    }
+
+    function playerCoords(player, groupedIndex, groupedTotal) {
+      const lane = {
+        'Atacante': 20,
+        'Meio-Campo': 42,
+        'Zagueiro': 64,
+        'Goleiro': 84
+      }[player.position] || 50;
+      return { x: spread(groupedIndex, groupedTotal, 18, 82), y: lane };
+    }
+
+    function renderTacticalField(data) {
+      const field = document.getElementById('tactical-field');
+      const players = sortedLineup(data.user_lineup);
+      const byPosition = players.reduce((acc, player) => {
+        acc[player.position] = acc[player.position] || [];
+        acc[player.position].push(player);
+        return acc;
+      }, {});
+
+      const playerCards = players.map(player => {
+        const group = byPosition[player.position] || [player];
+        const index = group.findIndex(p => p.id === player.id);
+        const coords = playerCoords(player, index, group.length);
+        const displayName = player.owned ? player.name : 'Vago';
+        return `
+          <div class="pitch-player ${player.owned ? 'owned' : 'vacant'}" style="left:${coords.x}%;top:${coords.y}%">
+            <div class="pitch-player-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+            <div class="pitch-player-meta">${escapeHtml(player.position)} · ${player.owned ? `${player.rating} ${icon('star', 'Estrela')} · x${player.quantity}` : 'sem bônus'}</div>
+          </div>
+        `;
+      }).join('');
+
+      field.innerHTML = `
+        <div class="pitch-area left"></div>
+        <div class="pitch-area right"></div>
+        <div class="pitch-team-label left">${escapeHtml(data.user_team)}</div>
+        <div class="pitch-team-label right">Força ${Number(data.user_team_rating).toFixed(1)}</div>
+        ${playerCards || '<div class="history-empty" style="position:absolute;inset:40% 16px auto">Sem escalações disponíveis.</div>'}
+      `;
+    }
+
+    // ─── Stickers ───────────────────────────────────────────────────────────
+    async function loadCollection() {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API}/stickers/collection`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) return;
+        albumCollection = await res.json();
+        if (typeof albumCollection.gems === 'number') updateGems(albumCollection.gems);
+        renderCollection(albumCollection);
+      } catch {}
+    }
+
+    function renderSticker(item, revealed = false, options = {}) {
+      const player = item.player;
+      const rarityClass = ratingRarityClass(player.rating);
+      const selected = selectedLineupIds.has(player.id);
+      const selectable = options.selectable && item.owned;
+      return `
+        <div class="sticker-card ${rarityClass} ${selected ? 'lineup-selected' : ''} ${item.owned ? '' : 'locked'} ${revealed ? 'revealed' : ''}">
+          ${playerPhotoMarkup(player, item.owned)}
+          <div class="sticker-info">
+            <div class="sticker-team">${escapeHtml(player.team_name)}</div>
+            <div class="sticker-name">${item.owned ? escapeHtml(player.name) : 'Bloqueada'}</div>
+            <div class="sticker-meta">
+              <span>${escapeHtml(player.position)} · ${starsForRating(player.rating)}</span>
+              <span class="sticker-count">x${item.quantity}</span>
+            </div>
+            ${selectable ? `<button class="sticker-action" onclick="toggleLineupPlayer(${player.id})">${selected ? 'Remover do time' : 'Colocar no time'}</button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function ratingRarityKey(rating) {
+      if (rating >= 5) return 'legendary';
+      if (rating >= 4) return 'epic';
+      if (rating >= 3) return 'rare';
+      return 'common';
+    }
+
+    function ratingRarityClass(rating) {
+      return `rarity-${ratingRarityKey(rating)}`;
+    }
+
+    function ratingRarityFilterValue(rating) {
+      return ratingRarityKey(rating);
+    }
+
+    function normalizeFilterText(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }
+
+    function updatePlayerFilters() {
+      const nameInput = document.getElementById('player-name-filter');
+      const raritySelect = document.getElementById('player-rarity-filter');
+      playerFilters = {
+        name: normalizeFilterText(nameInput?.value || ''),
+        rarity: raritySelect?.value || 'all'
+      };
+      renderSelectionDetail();
+    }
+
+    function resetPlayerFilters() {
+      playerFilters = { name: '', rarity: 'all' };
+      const nameInput = document.getElementById('player-name-filter');
+      const raritySelect = document.getElementById('player-rarity-filter');
+      if (nameInput) nameInput.value = '';
+      if (raritySelect) raritySelect.value = 'all';
+      renderSelectionDetail();
+    }
+
+    function itemMatchesPlayerFilters(item) {
+      const player = item?.player || {};
+      if (playerFilters.name && !normalizeFilterText(player.name).includes(playerFilters.name)) {
+        return false;
+      }
+      if (playerFilters.rarity !== 'all' && ratingRarityFilterValue(player.rating) !== playerFilters.rarity) {
+        return false;
+      }
+      return true;
+    }
+
+    function rouletteSticker(item, revealed = false) {
+      const ownedItem = { ...item, owned: true };
+      return renderSticker(ownedItem, revealed);
+    }
+
+    function renderCollection(collection) {
+      selectedLineupIds = new Set(collection.items.filter(item => item.selected).map(item => item.player.id));
+      document.getElementById('album-owned').textContent = collection.owned_players;
+      document.getElementById('album-copies').textContent = collection.total_copies;
+      const rating = calculateSquadRating();
+      document.getElementById('squad-rating').textContent = rating.toFixed(1);
+      const myRating = document.getElementById('my-squad-rating');
+      if (myRating) myRating.textContent = `Força ${rating.toFixed(1)}`;
+      updateVsDisplay();
+      renderMyLineup();
+      renderSelectionDetail();
+      renderProfileForm();
+    }
+
+    function ownedItems() {
+      return (albumCollection?.items || []).filter(item => item.owned);
+    }
+
+    function squadItems() {
+      const owned = ownedItems().sort((a, b) =>
+        b.player.rating - a.player.rating || a.player.name.localeCompare(b.player.name)
+      );
+      return owned.filter(item => selectedLineupIds.has(item.player.id));
+    }
+
+    function calculateSquadRating() {
+      const lineup = squadItems();
+      if (!lineup.length) return 1;
+      return lineup.reduce((sum, item) => sum + item.player.rating, 0) / lineup.length;
+    }
+
+    function renderMyLineup() {
+      const grid = document.getElementById('my-lineup-grid');
+      if (!grid || !albumCollection) return;
+      const lineup = squadItems();
+      if (!lineup.length) {
+        grid.innerHTML = '<div class="history-empty">Você ainda não tem jogadores.</div>';
+        return;
+      }
+      grid.innerHTML = lineup.map(item => renderSticker(item, false, { selectable: true })).join('');
+      updateLineupCount();
+    }
+
+    function updateLineupCount() {
+      const count = document.getElementById('lineup-count');
+      if (!count) return;
+      const selected = squadItems();
+      const goalkeepers = selected.filter(item => item.player.position === 'Goleiro').length;
+      count.textContent = `${selected.length} / 11 selecionados · Goleiros: ${goalkeepers}`;
+    }
+
+    function toggleLineupPlayer(playerId) {
+      if (selectedLineupIds.has(playerId)) {
+        selectedLineupIds.delete(playerId);
+      } else {
+        if (selectedLineupIds.size >= 11) {
+          alert('Sua escalação já tem 11 jogadores. Remova uma carta antes de adicionar outra.');
+          return;
+        }
+        selectedLineupIds.add(playerId);
+      }
+      const rating = calculateSquadRating();
+      document.getElementById('squad-rating').textContent = rating.toFixed(1);
+      const myRating = document.getElementById('my-squad-rating');
+      if (myRating) myRating.textContent = `Força ${rating.toFixed(1)}`;
+      updateVsDisplay();
+      renderMyLineup();
+      renderSelectionDetail();
+    }
+
+    async function saveLineup() {
+      const ids = [...selectedLineupIds];
+      if (ids.length !== 11) {
+        alert('Escolha exatamente 11 jogadores antes de salvar.');
+        return;
+      }
+
+      setLoading('btn-save-lineup', true);
+      try {
+        const res = await fetch(`${API}/lineup`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ player_ids: ids })
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar escalação');
+        await loadCollection();
+      } catch (e) {
+        alert('Erro: ' + e.message);
+      } finally {
+        setLoading('btn-save-lineup', false);
+      }
+    }
+
+    function renderSelectionDetail() {
+      const detail = document.getElementById('selection-detail');
+      if (!detail || !albumCollection) return;
+      const ownedPlayers = ownedItems();
+      const players = ownedPlayers.filter(itemMatchesPlayerFilters);
+      if (!ownedPlayers.length) {
+        detail.innerHTML = '<div class="history-empty">Abra a roleta para liberar cartas da Copa.</div>';
+        return;
+      }
+      if (!players.length) {
+        detail.innerHTML = `
+          <div class="selection-detail-title">Cartas da Copa<span class="selection-filter-count">0 de ${ownedPlayers.length}</span></div>
+          <div class="history-empty">Nenhum jogador encontrado.</div>
+        `;
+        updateLineupCount();
+        return;
+      }
+
+      const groups = players.reduce((acc, item) => {
+        acc[item.player.team_name] = acc[item.player.team_name] || [];
+        acc[item.player.team_name].push(item);
+        return acc;
+      }, {});
+
+      detail.innerHTML = `
+        <div class="selection-detail-title">Cartas da Copa<span class="selection-filter-count">${players.length} de ${ownedPlayers.length}</span></div>
+        ${Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)).map(([team, items]) => `
+          <div class="selection-detail-title" style="margin-top:18px">${escapeHtml(team)}</div>
+          <div class="album-grid">
+            ${items.map(item => renderSticker(item, false, { selectable: true })).join('')}
+          </div>
+        `).join('')}
+      `;
+      updateLineupCount();
+    }
+
+	    function clearGachaTimers() {
+	      clearTimeout(gachaAnimTimeout);
+	      gachaAnimTimeout = null;
+	      gachaRevealRemaining = null;
+	    }
+
+	    function normalizeGachaRewards(rewards) {
+	      return Array.isArray(rewards) ? rewards.filter(item => item?.player) : [];
+	    }
+
+	    function setGachaStatus(message) {
+	      const status = document.getElementById('gacha-status');
+	      if (status) status.textContent = message;
+	    }
+
+	    function renderPackRevealCards(cards) {
+	      const reveal = document.getElementById('pack-reveal');
+	      const rewards = normalizeGachaRewards(cards);
+	      if (!reveal || !rewards.length) return;
+	      reveal.innerHTML = rewards.map((item, index) => `
+	        <div class="pack-reveal-card" style="--deal-delay:${Math.min(index, 8) * 45}ms">
+	          ${rouletteSticker(item, true)}
+	        </div>
+	      `).join('');
+	    }
+
+	    function setGachaRunning(running) {
+	      gachaIsRunning = running;
+      const closeBtn = document.getElementById('btn-gacha-close');
+      const skipBtn = document.getElementById('btn-gacha-skip');
+      const packBtn = document.getElementById('btn-player-pack');
+      const pack10Btn = document.getElementById('btn-player-pack-10');
+      if (closeBtn) closeBtn.disabled = running;
+      if (skipBtn) skipBtn.disabled = !running;
+      if (packBtn) packBtn.disabled = running;
+      if (pack10Btn) pack10Btn.disabled = running;
+    }
+
+    function updateGachaCounter() {
+      document.getElementById('gacha-counter').textContent = `${gachaCurrentSpin} / ${gachaRewards.length}`;
+    }
+
+    function randomRouletteItem() {
+      const items = albumCollection?.items || [];
+      if (!items.length) return gachaRewards[0];
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function buildRouletteTrack(targetItem) {
+      const track = document.getElementById('roulette-track');
+      const cards = [];
+      for (let i = 0; i < 32; i++) cards.push(randomRouletteItem());
+      cards.push(targetItem);
+      for (let i = 0; i < 10; i++) cards.push(randomRouletteItem());
+      track.innerHTML = cards.map(item => `<div class="roulette-card">${rouletteSticker(item)}</div>`).join('');
+    }
+
+	    function addGachaResult(item) {
+	      const results = document.getElementById('gacha-results');
+	      const index = results.children.length;
+	      results.insertAdjacentHTML('beforeend', `
+	        <div class="gacha-result-card" style="--deal-delay:${Math.min(index, 8) * 45}ms">
+	          ${rouletteSticker(item, true)}
+	        </div>
+	      `);
+	    }
+
+    function freezeRoulette() {
+      const track = document.getElementById('roulette-track');
+      const computed = window.getComputedStyle(track).transform;
+      track.style.transition = 'none';
+      track.style.transform = computed;
+    }
+
+	    function startGachaRoulette(rewards, openingId = null) {
+	      const normalizedRewards = normalizeGachaRewards(rewards);
+	      if (!normalizedRewards.length) {
+	        alert('Nenhum jogador foi retornado pela roleta.');
+	        return;
+	      }
+	      const overlay = document.getElementById('gacha-overlay');
+	      const results = document.getElementById('gacha-results');
+	      const track = document.getElementById('roulette-track');
+	      overlay.classList.remove('purchase-complete');
+	      overlay.classList.add('show');
+	      results.innerHTML = '';
+	      track.innerHTML = '';
+	      setGachaStatus('Roleta girando');
+	      clearGachaTimers();
+	      gachaRewards = normalizedRewards;
+	      gachaOpeningId = openingId;
+	      gachaCurrentSpin = 0;
+	      gachaSkipRequested = false;
+	      setGachaRunning(true);
+      updateGachaCounter();
+      let gachaFinished = false;
+
+      function finishGacha() {
+        if (gachaFinished) return;
+	        gachaFinished = true;
+	        clearGachaTimers();
+	        setGachaRunning(false);
+	        renderPackRevealCards(gachaRewards);
+	        overlay.classList.add('purchase-complete');
+	        setGachaStatus('Confirmando compra');
+	        commitGachaOpening(gachaOpeningId);
+	      }
+
+      function revealRemaining() {
+        if (gachaFinished) return;
+        freezeRoulette();
+	        for (let i = gachaCurrentSpin; i < gachaRewards.length; i++) addGachaResult(gachaRewards[i]);
+	        gachaCurrentSpin = gachaRewards.length;
+	        updateGachaCounter();
+	        setGachaStatus('Compra revelada');
+	        finishGacha();
+	      }
+      gachaRevealRemaining = revealRemaining;
+
+      function spinOne() {
+	        if (gachaCurrentSpin >= gachaRewards.length) {
+	          finishGacha();
+	          return;
+	        }
+
+	        const item = gachaRewards[gachaCurrentSpin];
+	        setGachaStatus(`Sorteando ${gachaCurrentSpin + 1} de ${gachaRewards.length}`);
+	        const track = document.getElementById('roulette-track');
+	        buildRouletteTrack(item);
+
+        const cardWidth = 216;
+        const targetIndex = 32;
+        const wrapperWidth = track.parentElement.offsetWidth;
+        const finalPosition = targetIndex * cardWidth + 102 - (wrapperWidth / 2);
+        const startOffset = wrapperWidth * 0.45;
+
+        track.style.transition = 'none';
+        track.style.transform = `translate3d(${startOffset}px,-50%,0)`;
+        void track.offsetWidth;
+        track.style.transition = 'transform 4.6s cubic-bezier(0.05,0.82,0,1)';
+        track.style.transform = `translate3d(-${finalPosition}px,-50%,0)`;
+
+        gachaAnimTimeout = setTimeout(() => {
+	          if (gachaSkipRequested) return;
+	          addGachaResult(item);
+	          gachaCurrentSpin++;
+	          updateGachaCounter();
+	          setGachaStatus(`${gachaCurrentSpin} de ${gachaRewards.length} revelado`);
+	          gachaAnimTimeout = setTimeout(spinOne, 360);
+	        }, 4600);
+      }
+
+      spinOne();
+    }
+
+	    function skipGachaAnimation() {
+	      gachaSkipRequested = true;
+	      if (gachaRevealRemaining) gachaRevealRemaining();
+	    }
+
+	    async function commitGachaOpening(openingId, options = {}) {
+	      const refreshCollection = options.refreshCollection !== false;
+	      if (!openingId) {
+	        setGachaStatus('Compra concluída');
+	        if (refreshCollection) await loadCollection();
+	        return null;
+	      }
+	      try {
+	        const res = await fetch(`${API}/packs/open-player/${openingId}/commit`, {
+	          method: 'POST',
+	          headers: { 'Authorization': `Bearer ${token}` }
+	        });
+	        if (res.status === 401) { doLogout(); return; }
+	        const data = await res.json();
+	        if (!res.ok) throw new Error(data.detail || 'Erro ao confirmar compra');
+	        if (typeof data.remaining_gems === 'number') updateGems(data.remaining_gems);
+	        setGachaStatus('Compra concluída');
+	        if (refreshCollection) await loadCollection();
+	        return data;
+	      } catch (e) {
+	        setGachaStatus('Falha ao confirmar');
+	        alert('Erro: ' + e.message);
+	        throw e;
+	      }
+	    }
+
+		    function closeGachaModal() {
+	      if (gachaIsRunning) return;
+	      clearGachaTimers();
+	      document.getElementById('gacha-overlay').classList.remove('show', 'purchase-complete');
+	      gachaOpeningId = null;
+	      setGachaStatus('Aguardando roleta');
+	    }
+
+	    function updateGems(value) {
+	      const previousGems = userGems;
+	      userGems = Number(value || 0);
+	      localStorage.setItem('wc_gems', String(userGems));
+	      const balance = document.getElementById('gem-balance');
+	      if (balance) balance.textContent = userGems;
+	      const wallet = balance?.closest('.wallet-button');
+	      if (wallet && previousGems !== userGems) {
+	        wallet.classList.remove('balance-pop');
+	        void wallet.offsetWidth;
+	        wallet.classList.add('balance-pop');
+	        wallet.addEventListener('animationend', () => wallet.classList.remove('balance-pop'), { once: true });
+	      }
+	    }
+
+	    async function commitMatchSimulation(simulationId) {
+	      const res = await fetch(`${API}/simulate/${simulationId}/commit`, {
+	        method: 'POST',
+	        headers: { 'Authorization': `Bearer ${token}` }
+	      });
+	      if (res.status === 401) { doLogout(); return null; }
+	      const data = await res.json();
+	      if (!res.ok) throw new Error(data.detail || 'Erro ao confirmar partida');
+	      return data;
+	    }
+
+    function openGemShop() {
+      document.getElementById('gem-shop-overlay').classList.add('show');
+    }
+
+	    function closeGemShop() {
+	      document.getElementById('gem-shop-overlay').classList.remove('show', 'purchase-complete');
+	    }
+
+    function selectGemPackage(packageId) {
+      selectedGemPackage = packageId;
+      document.querySelectorAll('.shop-pack').forEach(pack => {
+        pack.classList.toggle('selected', pack.dataset.package === packageId);
+      });
+    }
+
+	    async function confirmGemPurchase() {
+	      setLoading('btn-gem-purchase', true);
+	      try {
+        const res = await fetch(`${API}/wallet/purchase`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ package_id: selectedGemPackage })
+        });
+        if (res.status === 401) { doLogout(); return; }
+	        const data = await res.json();
+	        if (!res.ok) throw new Error(data.detail || 'Erro ao comprar gemas');
+	        updateGems(data.gems);
+	        await playGemPurchaseAnimation();
+	        closeGemShop();
+	      } catch (e) {
+	        alert('Erro: ' + e.message);
+	      } finally {
+	        setLoading('btn-gem-purchase', false);
+	      }
+	    }
+
+		    function playGemPurchaseAnimation() {
+		      return new Promise(resolve => {
+	        const overlay = document.getElementById('gem-shop-overlay');
+	        overlay.classList.add('purchase-complete');
+	        setTimeout(() => {
+	          overlay.classList.remove('purchase-complete');
+	          resolve();
+		        }, 520);
+		      });
+		    }
+
+	    function renderProfileForm() {
+      if (!userProfile) return;
+      const displayName = userProfile.display_name || userProfile.username || '';
+      const bio = userProfile.bio || '';
+      const theme = userProfile.profile_theme || 'stadium';
+      const nameInput = document.getElementById('profile-display-name');
+      const emailInput = document.getElementById('profile-email');
+      const bioInput = document.getElementById('profile-bio');
+      const themeInput = document.getElementById('profile-theme');
+      if (nameInput) nameInput.value = displayName;
+      if (emailInput) emailInput.value = userProfile.email || '';
+      if (bioInput) bioInput.value = bio;
+      if (themeInput) themeInput.value = theme;
+
+      const previewAvatar = document.getElementById('profile-avatar-preview');
+      const previewName = document.getElementById('profile-name-preview');
+      const previewUsername = document.getElementById('profile-username-preview');
+      const previewBio = document.getElementById('profile-bio-preview');
+      const previewGems = document.getElementById('profile-gems-preview');
+      const previewCards = document.getElementById('profile-cards-preview');
+      const previewRating = document.getElementById('profile-rating-preview');
+      if (previewAvatar) previewAvatar.innerHTML = avatarMarkup();
+      if (previewName) previewName.textContent = displayName || 'Jogador';
+      if (previewUsername) previewUsername.textContent = `@${userProfile.username || username}`;
+      if (previewBio) previewBio.textContent = bio || 'Personalize seu perfil para entrar em campo com estilo.';
+      if (previewGems) previewGems.textContent = userGems;
+      if (previewCards) previewCards.textContent = albumCollection?.owned_players || 0;
+      if (previewRating) previewRating.textContent = calculateSquadRating().toFixed(1);
+      applyProfileTheme(theme);
+      updateUserBar();
+    }
+
+    function updateProfilePreviewFromInputs() {
+      const displayName = document.getElementById('profile-display-name')?.value.trim() || userProfile?.username || 'Jogador';
+      const bio = document.getElementById('profile-bio')?.value.trim() || 'Personalize seu perfil para entrar em campo com estilo.';
+      const previewAvatar = document.getElementById('profile-avatar-preview');
+      const previewName = document.getElementById('profile-name-preview');
+      const previewBio = document.getElementById('profile-bio-preview');
+      if (previewAvatar) previewAvatar.innerHTML = avatarMarkup();
+      if (previewName) previewName.textContent = displayName;
+      if (previewBio) previewBio.textContent = bio;
+      updateUserBar();
+    }
+
+    function handleAvatarFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showAlert('profile-error', 'Escolha um arquivo de imagem.');
+        return;
+      }
+      if (file.size > 260000) {
+        showAlert('profile-error', 'A foto precisa ter até 260 KB.');
+        event.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingAvatarData = String(reader.result || '');
+        updateProfilePreviewFromInputs();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeProfilePhoto() {
+      pendingAvatarData = null;
+      if (userProfile) userProfile.avatar_data = null;
+      const input = document.getElementById('profile-avatar-input');
+      if (input) input.value = '';
+      updateProfilePreviewFromInputs();
+    }
+
+    function renderClubForm() {
+      if (!userProfile) return;
+      const name = document.getElementById('club-team-name');
+      const badge = document.getElementById('club-team-badge');
+      const formation = document.getElementById('club-formation');
+      if (name && document.activeElement !== name) name.value = userProfile.custom_team_name || 'Minha Seleção';
+      if (badge && document.activeElement !== badge) badge.value = userProfile.custom_team_badge || 'star';
+      if (formation && document.activeElement !== formation) formation.value = userProfile.custom_formation || '4-3-3';
+
+      const currentName = name?.value || userProfile.custom_team_name || 'Minha Seleção';
+      const currentBadge = badge?.value || userProfile.custom_team_badge || 'star';
+      const currentFormation = formation?.value || userProfile.custom_formation || '4-3-3';
+      const badgePreview = document.getElementById('club-badge-preview');
+      const namePreview = document.getElementById('club-name-preview');
+      const formationPreview = document.getElementById('club-formation-preview');
+      if (badgePreview) badgePreview.innerHTML = largeIcon(currentBadge, 'Escudo');
+      if (namePreview) namePreview.textContent = currentName;
+      if (formationPreview) formationPreview.textContent = `Formação ${currentFormation}`;
+      updateVsDisplay();
+    }
+
+    async function saveClubSettings() {
+      setLoading('btn-save-club', true);
+      try {
+        const payload = {
+          custom_team_name: document.getElementById('club-team-name').value.trim(),
+          custom_team_badge: document.getElementById('club-team-badge').value,
+          custom_formation: document.getElementById('club-formation').value
+        };
+        const res = await fetch(`${API}/user/team-settings`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar time');
+        userProfile = data;
+        renderClubForm();
+        updateVsDisplay();
+        showAlert('club-success', 'Time atualizado.');
+      } catch (e) {
+        showAlert('club-error', e.message);
+      } finally {
+        setLoading('btn-save-club', false);
+      }
+    }
+
+    function populateTeamSelects() {
+      const home = document.getElementById('admin-home-team');
+      const away = document.getElementById('admin-away-team');
+      if (!home || !away || !allTeams.length) return;
+      const options = allTeams.map(team => `<option value="${escapeHtml(team.name)}">${escapeHtml(team.name)}</option>`).join('');
+      home.innerHTML = options;
+      away.innerHTML = options;
+      if (allTeams[1]) away.value = allTeams[1].name;
+    }
+
+    async function refreshAdminPanel() {
+      if (!userProfile?.is_admin) return;
+      await loadCupMatches();
+      await loadMomentum();
+    }
+
+    async function loadCupMatches() {
+      const res = await fetch(`${API}/cup/matches`);
+      if (!res.ok) return;
+      cupMatches = await res.json();
+      renderCupMatches();
+    }
+
+    async function loadMomentum() {
+      const res = await fetch(`${API}/cup/momentum`);
+      if (!res.ok) return;
+      const data = await res.json();
+      teamMomentum = data.items || [];
+      renderMomentum();
+    }
+
+    function renderCupMatches() {
+      const list = document.getElementById('admin-cup-matches');
+      if (!list) return;
+      if (!cupMatches.length) {
+        list.innerHTML = '<div class="history-empty">Nenhum resultado cadastrado.</div>';
+        return;
+      }
+      list.innerHTML = cupMatches.map(match => `
+        <div class="history-item">
+          <div>
+            <div class="history-teams">${escapeHtml(match.home_team)} ${match.home_score} x ${match.away_score} ${escapeHtml(match.away_team)}</div>
+            <div class="history-score">${match.source === 'auto' ? 'Gerado automaticamente' : 'Informado manualmente'}</div>
+          </div>
+          <button class="btn-logout" onclick="deleteCupMatch(${match.id})">Apagar</button>
+        </div>
+      `).join('');
+    }
+
+    function renderMomentum() {
+      const list = document.getElementById('admin-momentum');
+      if (!list) return;
+      const boosted = teamMomentum.filter(item => item.wins || item.draws || item.losses);
+      if (!boosted.length) {
+        list.innerHTML = '<div class="history-empty">Sem bônus cadastrados.</div>';
+        return;
+      }
+      list.innerHTML = boosted.map(item => `
+        <div class="history-item">
+          <div>
+            <div class="history-teams">${escapeHtml(item.team_name)}</div>
+            <div class="history-score">V ${item.wins} · E ${item.draws} · D ${item.losses}</div>
+          </div>
+          <span class="history-result-badge win">x${Number(item.boost).toFixed(3)}</span>
+        </div>
+      `).join('');
+    }
+
+    async function saveCupMatch() {
+      setLoading('btn-save-cup-match', true);
+      try {
+        const payload = {
+          home_team: document.getElementById('admin-home-team').value,
+          away_team: document.getElementById('admin-away-team').value,
+          home_score: Number(document.getElementById('admin-home-score').value || 0),
+          away_score: Number(document.getElementById('admin-away-score').value || 0)
+        };
+        const res = await fetch(`${API}/admin/cup/matches`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar resultado');
+        showAlert('admin-success', 'Resultado salvo.');
+        await refreshAdminPanel();
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading('btn-save-cup-match', false);
+      }
+    }
+
+    async function generateCupMatches() {
+      setLoading('btn-generate-cup', true);
+      try {
+        const res = await fetch(`${API}/admin/cup/matches/generate?amount=8`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao gerar resultados');
+        showAlert('admin-success', 'Resultados automáticos gerados.');
+        await refreshAdminPanel();
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading('btn-generate-cup', false);
+      }
+    }
+
+    async function deleteCupMatch(matchId) {
+      if (!confirm('Apagar este resultado global?')) return;
+      const res = await fetch(`${API}/admin/cup/matches/${matchId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) { doLogout(); return; }
+      await refreshAdminPanel();
+    }
+
+    async function saveProfile() {
+      if (!userProfile) return;
+      setLoading('btn-save-profile', true);
+      try {
+        const payload = {
+          display_name: document.getElementById('profile-display-name').value.trim() || null,
+          email: document.getElementById('profile-email').value.trim() || null,
+          bio: document.getElementById('profile-bio').value.trim() || null,
+          avatar_data: pendingAvatarData !== null ? pendingAvatarData : userProfile.avatar_data,
+          profile_theme: document.getElementById('profile-theme').value
+        };
+        const res = await fetch(`${API}/auth/me`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Erro ao salvar perfil');
+        userProfile = data;
+        pendingAvatarData = null;
+        updateUserBar();
+        renderProfileForm();
+        showAlert('profile-success', 'Perfil salvo com sucesso.');
+      } catch (e) {
+        showAlert('profile-error', e.message);
+      } finally {
+        setLoading('btn-save-profile', false);
+      }
+    }
+
+    async function deleteAccount() {
+      const password = document.getElementById('delete-password').value;
+      if (!password) return showAlert('profile-error', 'Digite sua senha para excluir a conta.');
+      if (!confirm('Excluir sua conta permanentemente? Esta ação não pode ser desfeita.')) return;
+      setLoading('btn-delete-account', true);
+      try {
+        const res = await fetch(`${API}/auth/me`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ password })
+        });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || 'Erro ao excluir conta');
+        }
+        doLogout();
+      } catch (e) {
+        showAlert('profile-error', e.message);
+      } finally {
+        setLoading('btn-delete-account', false);
+      }
+    }
+
+	    async function openPlayerPack(amount = 1, event = null) {
+	      event?.preventDefault();
+	      if (gachaIsRunning) return;
+	      const reveal = document.getElementById('pack-reveal');
+	      const buttonId = amount === 10 ? 'btn-player-pack-10' : 'btn-player-pack';
+      setLoading(buttonId, true);
+      reveal.innerHTML = Array.from({ length: Math.min(amount, 3) }).map(() => `
+        <div class="sticker-card locked revealed">
+          <div class="sticker-photo sticker-photo-fallback"><span>?</span></div>
+          <div class="sticker-info">
+            <div class="sticker-team">Roleta de jogador</div>
+            <div class="sticker-name">?</div>
+            <div class="sticker-meta"><span>Sorteando</span><span class="sticker-count">x${amount}</span></div>
+          </div>
+        </div>
+	      `).join('');
+
+	      try {
+	        if (!albumCollection) await loadCollection();
+	        const res = await fetch(`${API}/packs/open-player?amount=${amount}`, {
+	          method: 'POST',
+	          headers: { 'Authorization': `Bearer ${token}` }
+	        });
+	        if (res.status === 401) { doLogout(); return; }
+	        const data = await res.json();
+	        if (!res.ok) throw new Error(data.detail || 'Erro ao abrir pacote');
+	        let rewards = normalizeGachaRewards(data.cards);
+	        if (!rewards.length) throw new Error('Nenhum jogador veio na compra');
+
+	        reveal.innerHTML = '';
+	        if (typeof data.remaining_gems === 'number') updateGems(data.remaining_gems);
+	        let openingId = data.opening_id || null;
+	        if (openingId) {
+	          const committed = await commitGachaOpening(openingId, { refreshCollection: false });
+	          const committedRewards = normalizeGachaRewards(committed?.cards);
+	          if (committedRewards.length) rewards = committedRewards;
+	          openingId = null;
+	        }
+	        startGachaRoulette(rewards, openingId);
+	      } catch (e) {
+	        alert('Erro: ' + e.message);
+	      } finally {
+        setTimeout(() => {
+          setLoading(buttonId, false);
+          if (gachaIsRunning) setGachaRunning(true);
+        }, 500);
+      }
+    }
+
+    function closeResult(e) {
+      if (e && e.target !== document.getElementById('result-overlay')) return;
+      document.getElementById('result-overlay').classList.remove('show');
+    }
+
+    // ─── History ─────────────────────────────────────────────────────────────
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${API}/history`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const matches = await res.json();
+        renderHistory(matches);
+      } catch {}
+    }
+
+    function renderHistory(matches) {
+      const list = document.getElementById('history-list');
+      const btnClear = document.getElementById('btn-clear');
+
+      // Stats
+      const wins = matches.filter(m => m.result === 'win').length;
+      const draws = matches.filter(m => m.result === 'draw').length;
+      const losses = matches.filter(m => m.result === 'loss').length;
+      document.getElementById('stat-wins').textContent = wins;
+      document.getElementById('stat-draws').textContent = draws;
+      document.getElementById('stat-losses').textContent = losses;
+
+      if (!matches.length) {
+        list.innerHTML = '<div class="history-empty">Nenhuma partida ainda. Vá jogar!</div>';
+        btnClear.style.display = 'none';
+        return;
+      }
+
+      const resultLabels = { win: 'Vitória', loss: 'Derrota', draw: 'Empate' };
+      list.innerHTML = matches.slice(0, 10).map(m => `
+        <div class="history-item">
+          <div>
+            <div class="history-teams">${m.user_team} × ${m.opponent_team}</div>
+            <div class="history-score">${m.user_score} – ${m.opponent_score} · ${new Date(m.played_at).toLocaleDateString('pt-BR')}</div>
+          </div>
+          <span class="history-result-badge ${m.result}">${resultLabels[m.result]}</span>
+        </div>
+      `).join('');
+
+      btnClear.style.display = 'block';
+    }
+
+    async function doClearHistory() {
+      if (!confirm('Limpar todo o histórico de partidas?')) return;
+      await fetch(`${API}/history`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      await loadHistory();
+    }
+
+    // ─── UI Helpers ──────────────────────────────────────────────────────────
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`view-${name}`).classList.add('active');
+    }
+
+    function updateUserBar() {
+      if (!username) return;
+      document.getElementById('user-display-name').textContent = displayProfileName();
+      document.getElementById('user-avatar').innerHTML = avatarMarkup();
+      document.getElementById('gem-balance').textContent = userGems;
+    }
+
+    function showAlert(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      if (loading) {
+        btn._orig = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner"></span>Aguarde...';
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = btn._orig || btn.innerHTML;
+        btn.disabled = false;
+      }
+    }
+
+    // ─── Confetti ────────────────────────────────────────────────────────────
+    function spawnConfetti() {
+      const colors = ['#F5A623', '#0F7A4D', '#1AAD6F', '#FAFAF7', '#FFD700', '#27AE60'];
+      for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.className = 'confetti-piece';
+          el.style.cssText = `
+            left: ${Math.random() * 100}vw;
+            top: -10px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            width: ${6 + Math.random() * 8}px;
+            height: ${6 + Math.random() * 8}px;
+            animation-duration: ${1.5 + Math.random() * 2}s;
+            animation-delay: ${Math.random() * 0.5}s;
+          `;
+          document.body.appendChild(el);
+          el.addEventListener('animationend', () => el.remove());
+        }, i * 30);
+      }
+    }
+
+    // ─── Enter key support ───────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      if (document.getElementById('view-auth').classList.contains('active')) {
+        const loginVisible = document.getElementById('form-login').style.display !== 'none';
+        loginVisible ? doLogin() : doRegister();
+      }
+    });
+  </script>
+</body>
+</html>
