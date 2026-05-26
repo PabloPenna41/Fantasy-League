@@ -84,18 +84,6 @@ Depois acesse:
 http://localhost:5500/index.html
 ```
 
-## Login administrador
-
-Ao iniciar o backend, o sistema cria ou atualiza um usuario administrador:
-
-```text
-usuario: admin
-senha: admin
-```
-
-Use esse login apenas em ambiente local ou de estudo. Em producao, troque a
-senha e configure seguranca adequada.
-
 ## Banco de dados
 
 O projeto usa SQLite por padrao. O arquivo `worldcup.db` e criado
