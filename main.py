@@ -194,12 +194,12 @@ def seed_players(db: Session) -> None:
             db.add(models.Player(**clean_data))
 
     valid_keys = {(data["team_name"], data["name"]) for data in seed}
-    obsolete_base_players = [
+    obsolete_players = [
         player
-        for player in db.query(models.Player).filter(models.Player.team_name == "Base").all()
+        for player in db.query(models.Player).all()
         if (player.team_name, player.name) not in valid_keys
     ]
-    for player in obsolete_base_players:
+    for player in obsolete_players:
         db.query(models.UserLineupPlayer).filter(models.UserLineupPlayer.player_id == player.id).delete()
         db.query(models.UserSticker).filter(models.UserSticker.player_id == player.id).delete()
         db.delete(player)
@@ -373,6 +373,71 @@ def require_admin(current_user: models.User = Depends(auth.get_current_user)) ->
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso de administrador necessário")
     return current_user
+
+
+def get_admin_target_user(db: Session, user_id: int) -> models.User:
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    return user
+
+
+def has_other_active_admin(db: Session, user_id: int) -> bool:
+    return (
+        db.query(models.User)
+        .filter(
+            models.User.id != user_id,
+            models.User.is_admin == True,
+            models.User.is_active == True,
+        )
+        .first()
+        is not None
+    )
+
+
+def admin_user_summary(db: Session, user: models.User) -> schemas.AdminUserSummary:
+    stickers = db.query(models.UserSticker).filter(models.UserSticker.user_id == user.id).all()
+    return schemas.AdminUserSummary(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        display_name=user.display_name,
+        is_admin=user.is_admin,
+        is_active=user.is_active,
+        gems=user.gems,
+        total_players=db.query(models.Player).count(),
+        owned_players=sum(1 for sticker in stickers if sticker.quantity > 0),
+        total_copies=sum(max(sticker.quantity, 0) for sticker in stickers),
+        selected_players=db.query(models.UserLineupPlayer)
+        .filter(models.UserLineupPlayer.user_id == user.id)
+        .count(),
+        unlocked_teams=db.query(models.UserTeam)
+        .filter(models.UserTeam.user_id == user.id)
+        .count(),
+        matches=db.query(models.MatchHistory)
+        .filter(models.MatchHistory.user_id == user.id)
+        .count(),
+        created_at=user.created_at,
+    )
+
+
+def admin_user_detail(db: Session, user: models.User) -> schemas.AdminUserDetailResponse:
+    players = (
+        db.query(models.Player)
+        .order_by(models.Player.team_name.asc(), models.Player.rating.desc(), models.Player.name.asc())
+        .all()
+    )
+    quantities = owned_quantities(db, user.id)
+    selected = selected_lineup_ids(db, user.id)
+    teams = sorted(unlocked_team_names(db, user.id))
+    return schemas.AdminUserDetailResponse(
+        user=admin_user_summary(db, user),
+        items=[
+            collection_item(player, quantities.get(player.id, 0), player.id in selected)
+            for player in players
+        ],
+        unlocked_teams=teams,
+    )
 
 
 def cup_team_records(db: Session) -> dict[str, dict[str, int]]:
@@ -1071,7 +1136,205 @@ def open_sticker_pack(
     return open_player_pack(amount=1, db=db, current_user=current_user)
 
 
-# ─── Admin / Copa real simulada ─────────────────────────────────────────────
+# ─── Admin ──────────────────────────────────────────────────────────────────
+
+@app.get(
+    "/admin/users",
+    response_model=list[schemas.AdminUserSummary],
+    tags=["Admin"],
+    summary="Listar contas administráveis",
+)
+def list_admin_users(
+    q: str = Query("", max_length=80),
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    del admin_user
+    users = db.query(models.User).order_by(models.User.created_at.desc(), models.User.id.desc()).all()
+    query = q.strip().lower()
+    if query:
+        users = [
+            user for user in users
+            if query in user.username.lower()
+            or query in user.email.lower()
+            or query in (user.display_name or "").lower()
+        ]
+    return [admin_user_summary(db, user) for user in users]
+
+
+@app.get(
+    "/admin/users/{user_id}",
+    response_model=schemas.AdminUserDetailResponse,
+    tags=["Admin"],
+    summary="Detalhar uma conta administrável",
+)
+def get_admin_user(
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    del admin_user
+    return admin_user_detail(db, get_admin_target_user(db, user_id))
+
+
+@app.patch(
+    "/admin/users/{user_id}",
+    response_model=schemas.AdminUserDetailResponse,
+    tags=["Admin"],
+    summary="Atualizar uma conta pelo painel administrativo",
+)
+def update_admin_user(
+    user_id: int,
+    payload: schemas.AdminUserUpdateRequest,
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    target = get_admin_target_user(db, user_id)
+    fields = payload.model_fields_set
+
+    if target.id == admin_user.id:
+        if payload.is_admin is False:
+            raise HTTPException(status_code=400, detail="Você não pode remover seu próprio acesso admin")
+        if payload.is_active is False:
+            raise HTTPException(status_code=400, detail="Você não pode desativar sua própria conta")
+
+    losing_active_admin = (
+        target.is_admin
+        and target.is_active
+        and (
+            ("is_admin" in fields and payload.is_admin is False)
+            or ("is_active" in fields and payload.is_active is False)
+        )
+    )
+    if losing_active_admin and not has_other_active_admin(db, target.id):
+        raise HTTPException(status_code=400, detail="Mantenha pelo menos um administrador ativo")
+
+    if "email" in fields and payload.email and payload.email != target.email:
+        existing_email = (
+            db.query(models.User)
+            .filter(models.User.email == payload.email, models.User.id != target.id)
+            .first()
+        )
+        if existing_email:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="E-mail já cadastrado")
+        target.email = payload.email
+    if "display_name" in fields:
+        target.display_name = payload.display_name
+    if "gems" in fields and payload.gems is not None:
+        target.gems = payload.gems
+    if "is_admin" in fields and payload.is_admin is not None:
+        target.is_admin = payload.is_admin
+    if "is_active" in fields and payload.is_active is not None:
+        target.is_active = payload.is_active
+
+    db.commit()
+    db.refresh(target)
+    return admin_user_detail(db, target)
+
+
+@app.delete(
+    "/admin/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Admin"],
+    summary="Apagar uma conta pelo painel administrativo",
+)
+def delete_admin_user(
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    target = get_admin_target_user(db, user_id)
+    if target.id == admin_user.id:
+        raise HTTPException(status_code=400, detail="Use a tela de perfil para excluir sua própria conta")
+    if target.is_admin and target.is_active and not has_other_active_admin(db, target.id):
+        raise HTTPException(status_code=400, detail="Mantenha pelo menos um administrador ativo")
+    db.delete(target)
+    db.commit()
+
+
+@app.put(
+    "/admin/users/{user_id}/players/{player_id}",
+    response_model=schemas.AdminUserDetailResponse,
+    tags=["Admin"],
+    summary="Alterar quantidade de uma carta de jogador",
+)
+def update_admin_player_quantity(
+    user_id: int,
+    player_id: int,
+    payload: schemas.AdminPlayerQuantityRequest,
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    del admin_user
+    target = get_admin_target_user(db, user_id)
+    player = db.query(models.Player).filter(models.Player.id == player_id).first()
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jogador não encontrado")
+
+    sticker = (
+        db.query(models.UserSticker)
+        .filter(
+            models.UserSticker.user_id == target.id,
+            models.UserSticker.player_id == player.id,
+        )
+        .first()
+    )
+    if payload.quantity <= 0:
+        if sticker:
+            db.delete(sticker)
+        db.query(models.UserLineupPlayer).filter(
+            models.UserLineupPlayer.user_id == target.id,
+            models.UserLineupPlayer.player_id == player.id,
+        ).delete()
+    elif sticker:
+        sticker.quantity = payload.quantity
+    else:
+        db.add(models.UserSticker(user_id=target.id, player_id=player.id, quantity=payload.quantity))
+
+    db.commit()
+    db.refresh(target)
+    return admin_user_detail(db, target)
+
+
+@app.post(
+    "/admin/users/{user_id}/bulk-players",
+    response_model=schemas.AdminUserDetailResponse,
+    tags=["Admin"],
+    summary="Aplicar ação em massa na coleção de jogadores",
+)
+def bulk_admin_player_action(
+    user_id: int,
+    payload: schemas.AdminPlayerBulkRequest,
+    db: Session = Depends(database.get_db),
+    admin_user: models.User = Depends(require_admin),
+):
+    del admin_user
+    target = get_admin_target_user(db, user_id)
+
+    if payload.action == "clear_all":
+        db.query(models.UserLineupPlayer).filter(models.UserLineupPlayer.user_id == target.id).delete()
+        db.query(models.UserSticker).filter(models.UserSticker.user_id == target.id).delete()
+    elif payload.action == "grant_all":
+        players = db.query(models.Player).all()
+        existing_stickers = {
+            sticker.player_id: sticker
+            for sticker in db.query(models.UserSticker)
+            .filter(models.UserSticker.user_id == target.id)
+            .all()
+        }
+        for player in players:
+            sticker = existing_stickers.get(player.id)
+            if sticker:
+                sticker.quantity = max(sticker.quantity, 1)
+            else:
+                db.add(models.UserSticker(user_id=target.id, player_id=player.id, quantity=1))
+
+    db.commit()
+    db.refresh(target)
+    return admin_user_detail(db, target)
+
+
+# ─── Copa real simulada ─────────────────────────────────────────────────────
 
 @app.get(
     "/cup/momentum",

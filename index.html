@@ -1467,6 +1467,148 @@
       color: var(--white);
       padding: 0 12px;
     }
+    .admin-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+    .admin-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .admin-user-row {
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+    .admin-user-row:hover,
+    .admin-user-row.active {
+      border-color: rgba(55,215,255,0.5);
+      background: rgba(55,215,255,0.08);
+      transform: translateY(-1px);
+    }
+    .admin-user-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .admin-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--gray-300);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 0 8px;
+    }
+    .admin-chip.warn {
+      border-color: rgba(245,166,35,0.35);
+      color: var(--gold);
+    }
+    .admin-chip.danger {
+      border-color: rgba(231,76,60,0.42);
+      color: #ffb6aa;
+    }
+    .admin-account-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .admin-switches {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .admin-switch {
+      min-height: 46px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.18);
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--gray-300);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .admin-switch input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--green);
+    }
+    .admin-stat-line {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .admin-stat-line div {
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .admin-stat-line strong {
+      display: block;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      line-height: 1;
+    }
+    .admin-stat-line span {
+      color: var(--gray-500);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .admin-player-tools {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 10px;
+      margin: 16px 0 12px;
+    }
+    .admin-player-list {
+      display: grid;
+      gap: 8px;
+      max-height: 560px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .admin-player-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 92px 96px;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.18);
+      padding: 10px;
+    }
+    .admin-player-name {
+      font-size: 13px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
+    .admin-player-meta {
+      color: var(--gray-500);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .admin-player-row input {
+      width: 100%;
+      min-height: 40px;
+      text-align: center;
+    }
     @media (max-width: 900px) {
       .header {
         grid-template-columns: 1fr;
@@ -1492,9 +1634,18 @@
         text-align: center;
       }
       .profile-layout,
+      .admin-layout,
       .profile-form-grid,
+      .admin-account-grid,
+      .admin-switches,
+      .admin-stat-line,
+      .admin-toolbar,
+      .admin-player-tools,
       .danger-zone,
       .profile-actions {
+        grid-template-columns: 1fr;
+      }
+      .admin-player-row {
         grid-template-columns: 1fr;
       }
       .profile-preview {
@@ -1821,6 +1972,24 @@
       </div>
 
       <div id="panel-admin" class="game-panel">
+        <div class="admin-layout">
+          <div class="card">
+            <div class="card-title">Contas</div>
+            <div class="admin-toolbar">
+              <input type="text" id="admin-user-search" placeholder="Buscar usuário ou e-mail" oninput="filterAdminUsers()">
+              <button class="btn btn-secondary" onclick="loadAdminUsers()" id="btn-refresh-users"><img class="ui-icon" src="assets/icons/spark.svg" alt="">Atualizar</button>
+            </div>
+            <div class="history-list" id="admin-users-list">
+              <div class="history-empty">Nenhuma conta carregada.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" id="admin-user-detail-title">Conta selecionada</div>
+            <div id="admin-user-detail">
+              <div class="history-empty">Selecione uma conta.</div>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-title">Administrador da Copa</div>
           <div class="profile-form-grid">
@@ -2025,6 +2194,10 @@
 	    let allTeams = [];
 	    let cupMatches = [];
 	    let teamMomentum = [];
+	    let adminUsers = [];
+	    let adminSelectedUserId = null;
+	    let adminUserDetail = null;
+	    let adminPlayerFilter = '';
 	    let matchAnimationTimers = [];
     let playerFilters = {
       name: '',
@@ -2120,6 +2293,10 @@
       albumCollection = null;
       userProfile = null;
       pendingAvatarData = null;
+      adminUsers = [];
+      adminSelectedUserId = null;
+      adminUserDetail = null;
+      adminPlayerFilter = '';
       selectedLineupIds = new Set();
       playerFilters = { name: '', rarity: 'all' };
       const nameFilter = document.getElementById('player-name-filter');
@@ -3159,8 +3336,323 @@
 
     async function refreshAdminPanel() {
       if (!userProfile?.is_admin) return;
+      await loadAdminUsers();
       await loadCupMatches();
       await loadMomentum();
+    }
+
+    async function readApiJson(res, fallbackMessage) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || fallbackMessage);
+      return data;
+    }
+
+    function adminUserSearchText() {
+      return normalizeFilterText(document.getElementById('admin-user-search')?.value || '');
+    }
+
+    async function loadAdminUsers() {
+      if (!userProfile?.is_admin) return;
+      setLoading('btn-refresh-users', true);
+      try {
+        const res = await fetch(`${API}/admin/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        adminUsers = await readApiJson(res, 'Erro ao carregar contas');
+        if (adminSelectedUserId && !adminUsers.some(user => user.id === adminSelectedUserId)) {
+          adminSelectedUserId = null;
+          adminUserDetail = null;
+        }
+        if (!adminSelectedUserId && adminUsers.length) {
+          adminSelectedUserId = adminUsers[0].id;
+        }
+        renderAdminUsers();
+        if (adminSelectedUserId) await loadAdminUserDetail(adminSelectedUserId);
+        else renderAdminUserDetail();
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading('btn-refresh-users', false);
+      }
+    }
+
+    function filterAdminUsers() {
+      renderAdminUsers();
+    }
+
+    function renderAdminUsers() {
+      const list = document.getElementById('admin-users-list');
+      if (!list) return;
+      const query = adminUserSearchText();
+      const users = adminUsers.filter(user => {
+        if (!query) return true;
+        return normalizeFilterText(`${user.username} ${user.email} ${user.display_name || ''}`).includes(query);
+      });
+      if (!users.length) {
+        list.innerHTML = '<div class="history-empty">Nenhuma conta encontrada.</div>';
+        return;
+      }
+      list.innerHTML = users.map(user => {
+        const active = user.id === adminSelectedUserId ? 'active' : '';
+        const label = user.display_name || user.username;
+        return `
+          <div class="history-item admin-user-row ${active}" onclick="selectAdminUser(${user.id})">
+            <div>
+              <div class="history-teams">${escapeHtml(label)}</div>
+              <div class="history-score">@${escapeHtml(user.username)} · ${escapeHtml(user.email)}</div>
+              <div class="admin-user-meta">
+                <span class="admin-chip">${Number(user.gems || 0).toLocaleString('pt-BR')} gemas</span>
+                <span class="admin-chip">${user.owned_players}/${user.total_players || 0} cartas</span>
+                ${user.is_admin ? '<span class="admin-chip warn">Admin</span>' : ''}
+                ${user.is_active ? '' : '<span class="admin-chip danger">Inativa</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function selectAdminUser(userId) {
+      adminSelectedUserId = userId;
+      renderAdminUsers();
+      await loadAdminUserDetail(userId);
+    }
+
+    async function loadAdminUserDetail(userId) {
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await readApiJson(res, 'Erro ao carregar conta');
+        applyAdminUserDetail(data);
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      }
+    }
+
+    function applyAdminUserDetail(data) {
+      adminUserDetail = data;
+      adminSelectedUserId = data.user.id;
+      const index = adminUsers.findIndex(user => user.id === data.user.id);
+      if (index >= 0) adminUsers[index] = data.user;
+      else adminUsers.unshift(data.user);
+      syncCurrentUserFromAdmin(data.user);
+      renderAdminUsers();
+      renderAdminUserDetail();
+    }
+
+    function syncCurrentUserFromAdmin(summary) {
+      if (!userProfile || summary.id !== userProfile.id) return;
+      userProfile = {
+        ...userProfile,
+        email: summary.email,
+        display_name: summary.display_name,
+        gems: summary.gems,
+        is_admin: summary.is_admin,
+        is_active: summary.is_active
+      };
+      updateGems(summary.gems);
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = userProfile.is_admin ? '' : 'none';
+      });
+      renderProfileForm();
+    }
+
+    function renderAdminUserDetail() {
+      const wrap = document.getElementById('admin-user-detail');
+      const title = document.getElementById('admin-user-detail-title');
+      if (!wrap) return;
+      if (!adminUserDetail) {
+        if (title) title.textContent = 'Conta selecionada';
+        wrap.innerHTML = '<div class="history-empty">Selecione uma conta.</div>';
+        return;
+      }
+      const user = adminUserDetail.user;
+      const label = user.display_name || user.username;
+      const self = userProfile?.id === user.id;
+      if (title) title.textContent = label;
+      wrap.innerHTML = `
+        <div class="admin-account-grid">
+          <div class="form-group">
+            <label>Nome</label>
+            <input type="text" id="admin-edit-display-name" maxlength="80" value="${escapeHtml(user.display_name || '')}">
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="admin-edit-email" value="${escapeHtml(user.email || '')}">
+          </div>
+          <div class="form-group">
+            <label>Gemas</label>
+            <input type="number" id="admin-edit-gems" min="0" max="999999" value="${Number(user.gems || 0)}">
+          </div>
+          <div class="admin-switches">
+            <label class="admin-switch">Admin <input type="checkbox" id="admin-edit-is-admin" ${user.is_admin ? 'checked' : ''} ${self ? 'disabled' : ''}></label>
+            <label class="admin-switch">Ativa <input type="checkbox" id="admin-edit-is-active" ${user.is_active ? 'checked' : ''} ${self ? 'disabled' : ''}></label>
+          </div>
+        </div>
+        <div class="admin-stat-line">
+          <div><strong>${user.owned_players}</strong><span>Cartas</span></div>
+          <div><strong>${user.total_copies}</strong><span>Cópias</span></div>
+          <div><strong>${user.unlocked_teams}</strong><span>Seleções</span></div>
+          <div><strong>${user.matches}</strong><span>Partidas</span></div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn btn-primary" onclick="saveAdminUser()" id="btn-save-admin-user"><img class="ui-icon" src="assets/icons/gem.svg" alt="">Salvar conta</button>
+          <button class="btn btn-danger" onclick="deleteAdminUser()" id="btn-delete-admin-user" ${self ? 'disabled' : ''}><img class="ui-icon" src="assets/icons/trash.svg" alt="">Apagar conta</button>
+        </div>
+        <div class="admin-player-tools">
+          <input type="text" id="admin-player-filter" placeholder="Filtrar jogador" value="${escapeHtml(adminPlayerFilter)}" oninput="filterAdminPlayers()">
+          <button class="btn btn-secondary" onclick="adminBulkPlayers('grant_all')" id="btn-admin-grant-all"><img class="ui-icon" src="assets/icons/cards.svg" alt="">Dar todas</button>
+          <button class="btn btn-danger" onclick="adminBulkPlayers('clear_all')" id="btn-admin-clear-all"><img class="ui-icon" src="assets/icons/trash.svg" alt="">Zerar cartas</button>
+        </div>
+        <div class="admin-player-list" id="admin-player-list"></div>
+      `;
+      renderAdminPlayerList();
+    }
+
+    function filterAdminPlayers() {
+      adminPlayerFilter = normalizeFilterText(document.getElementById('admin-player-filter')?.value || '');
+      renderAdminPlayerList();
+    }
+
+    function renderAdminPlayerList() {
+      const list = document.getElementById('admin-player-list');
+      if (!list || !adminUserDetail) return;
+      const items = adminUserDetail.items.filter(item => {
+        if (!adminPlayerFilter) return true;
+        const player = item.player;
+        return normalizeFilterText(`${player.name} ${player.team_name} ${player.position}`).includes(adminPlayerFilter);
+      });
+      if (!items.length) {
+        list.innerHTML = '<div class="history-empty">Nenhum jogador encontrado.</div>';
+        return;
+      }
+      list.innerHTML = items.map(item => {
+        const player = item.player;
+        return `
+          <div class="admin-player-row">
+            <div>
+              <div class="admin-player-name">${escapeHtml(player.name)}</div>
+              <div class="admin-player-meta">${escapeHtml(player.team_name)} · ${escapeHtml(player.position)} · ${starsForRating(player.rating)} ${item.selected ? '· Escalado' : ''}</div>
+            </div>
+            <input type="number" id="admin-player-qty-${player.id}" min="0" max="999" value="${Number(item.quantity || 0)}">
+            <button class="btn btn-secondary" onclick="saveAdminPlayerQuantity(${player.id})" id="btn-admin-player-${player.id}">Salvar</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function saveAdminUser() {
+      if (!adminUserDetail) return;
+      const email = document.getElementById('admin-edit-email')?.value.trim();
+      if (!email) return showAlert('admin-error', 'Informe um e-mail válido.');
+      setLoading('btn-save-admin-user', true);
+      try {
+        const payload = {
+          display_name: document.getElementById('admin-edit-display-name')?.value.trim() || null,
+          email,
+          gems: Number(document.getElementById('admin-edit-gems')?.value || 0),
+          is_admin: Boolean(document.getElementById('admin-edit-is-admin')?.checked),
+          is_active: Boolean(document.getElementById('admin-edit-is-active')?.checked)
+        };
+        const res = await fetch(`${API}/admin/users/${adminUserDetail.user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await readApiJson(res, 'Erro ao salvar conta');
+        applyAdminUserDetail(data);
+        showAlert('admin-success', 'Conta atualizada.');
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading('btn-save-admin-user', false);
+      }
+    }
+
+    async function deleteAdminUser() {
+      if (!adminUserDetail) return;
+      const user = adminUserDetail.user;
+      if (!confirm(`Apagar a conta @${user.username}?`)) return;
+      setLoading('btn-delete-admin-user', true);
+      try {
+        const res = await fetch(`${API}/admin/users/${user.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) await readApiJson(res, 'Erro ao apagar conta');
+        adminSelectedUserId = null;
+        adminUserDetail = null;
+        showAlert('admin-success', 'Conta apagada.');
+        await loadAdminUsers();
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading('btn-delete-admin-user', false);
+      }
+    }
+
+    async function saveAdminPlayerQuantity(playerId) {
+      if (!adminUserDetail) return;
+      const input = document.getElementById(`admin-player-qty-${playerId}`);
+      const quantity = Number(input?.value || 0);
+      if (!Number.isInteger(quantity) || quantity < 0 || quantity > 999) {
+        return showAlert('admin-error', 'Quantidade deve ficar entre 0 e 999.');
+      }
+      setLoading(`btn-admin-player-${playerId}`, true);
+      try {
+        const res = await fetch(`${API}/admin/users/${adminUserDetail.user.id}/players/${playerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ quantity })
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await readApiJson(res, 'Erro ao alterar jogador');
+        applyAdminUserDetail(data);
+        if (userProfile?.id === data.user.id) await loadCollection();
+        showAlert('admin-success', 'Jogador atualizado.');
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading(`btn-admin-player-${playerId}`, false);
+      }
+    }
+
+    async function adminBulkPlayers(action) {
+      if (!adminUserDetail) return;
+      const text = action === 'grant_all' ? 'dar uma cópia de todos os jogadores' : 'zerar todas as cartas';
+      if (!confirm(`Confirmar: ${text} para @${adminUserDetail.user.username}?`)) return;
+      const buttonId = action === 'grant_all' ? 'btn-admin-grant-all' : 'btn-admin-clear-all';
+      setLoading(buttonId, true);
+      try {
+        const res = await fetch(`${API}/admin/users/${adminUserDetail.user.id}/bulk-players`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ action })
+        });
+        if (res.status === 401) { doLogout(); return; }
+        const data = await readApiJson(res, 'Erro ao aplicar ação em massa');
+        applyAdminUserDetail(data);
+        if (userProfile?.id === data.user.id) await loadCollection();
+        showAlert('admin-success', 'Coleção atualizada.');
+      } catch (e) {
+        showAlert('admin-error', e.message);
+      } finally {
+        setLoading(buttonId, false);
+      }
     }
 
     async function loadCupMatches() {

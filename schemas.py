@@ -269,6 +269,72 @@ class GemPurchaseRequest(BaseModel):
     package_id: str
 
 
+class AdminUserSummary(BaseModel):
+    """Resumo de conta para o painel administrativo."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    email: str
+    display_name: str | None = None
+    is_admin: bool = False
+    is_active: bool = True
+    gems: int = 0
+    total_players: int = 0
+    owned_players: int = 0
+    total_copies: int = 0
+    selected_players: int = 0
+    unlocked_teams: int = 0
+    matches: int = 0
+    created_at: datetime
+
+
+class AdminUserDetailResponse(BaseModel):
+    """Conta administrável com coleção completa de jogadores."""
+    user: AdminUserSummary
+    items: list[StickerCollectionItem]
+    unlocked_teams: list[str] = Field(default_factory=list)
+
+
+class AdminUserUpdateRequest(BaseModel):
+    """Alterações permitidas pelo administrador em outra conta."""
+    display_name: str | None = None
+    email: str | None = None
+    gems: int | None = Field(default=None, ge=0, le=999_999)
+    is_admin: bool | None = None
+    is_active: bool | None = None
+
+    @field_validator("display_name")
+    @classmethod
+    def admin_display_name_length(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if len(v) > 80:
+            raise ValueError("Nome de exibição deve ter no máximo 80 caracteres")
+        return v or None
+
+    @field_validator("email")
+    @classmethod
+    def admin_email_basic_format(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.rsplit("@", 1)[-1]:
+            raise ValueError("E-mail inválido")
+        return v
+
+
+class AdminPlayerQuantityRequest(BaseModel):
+    """Quantidade de uma carta na conta administrada."""
+    quantity: int = Field(ge=0, le=999)
+
+
+class AdminPlayerBulkRequest(BaseModel):
+    """Ação em massa para coleção de jogadores de uma conta."""
+    action: Literal["grant_all", "clear_all"]
+
+
 class LineupResponse(BaseModel):
     """Escalação personalizada do usuário."""
     players: list[StickerCollectionItem]

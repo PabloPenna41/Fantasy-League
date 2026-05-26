@@ -1,8 +1,8 @@
 """
 jogadores.py - catalogo editavel dos jogadores do site.
 
-Edite este arquivo para adicionar fotos, alterar jogadores existentes ou
-cadastrar novos jogadores. O backend le esta lista ao iniciar e atualiza
+Edite este arquivo para alterar jogadores existentes ou cadastrar novos.
+O backend le esta lista ao iniciar e atualiza
 a tabela de jogadores sem apagar figurinhas que os usuarios ja possuem.
 
 Campos de cada jogador:
@@ -10,13 +10,63 @@ Campos de cada jogador:
 - team_name: selecao/time do jogador.
 - position: "Goleiro", "Zagueiro", "Meio-Campo" ou "Atacante".
 - rating: forca de 1 a 5.
-- foto: caminho da imagem em assets/players/. O site mostra em 184x255.
+- foto: opcional. Por padrao, o sistema procura a imagem em
+  assets/players/Nome do Jogador.png. Exemplo:
+  assets/players/Adrien Rabiot.png.
+  Jogadores sem arquivo de imagem local sao ignorados no seed do banco.
 
 Para renomear ou trocar a selecao de um jogador ja salvo no banco, adicione
 original_name e, se necessario, original_team_name no item editado.
 """
 
+from pathlib import Path
+from urllib.parse import quote, unquote
+
 POSITIONS = ("Goleiro", "Zagueiro", "Meio-Campo", "Atacante")
+PLAYER_PHOTO_DIR = "assets/players"
+PLAYER_PHOTO_EXT = ".png"
+PLAYER_PHOTO_PATH = Path(__file__).resolve().parent / PLAYER_PHOTO_DIR
+
+PLAYER_PHOTO_ALIASES = {
+    "Darwin Núñez": "Darwin Núnez",
+    "Giorgian de Arrascaeta": "Giorgian De Arrascaeta",
+    "Ismaël Koné": "Ismael Koné",
+    "Julián Álvarez": "Julián Alvarez",
+    "Romain Saïss": "Romoin Saiss",
+    "Saleh Al-Shehri": "Saleh Alshehri",
+    "Salem Al-Dawsari": "Salem Aldawsasri",
+    "Weston McKennie": "Weston Mckennie",
+}
+
+
+def player_photo_url(name: str) -> str:
+    """Monta a URL da foto a partir do nome exibido na carta."""
+    filename = quote(f"{name}{PLAYER_PHOTO_EXT}", safe="")
+    return f"{PLAYER_PHOTO_DIR}/{filename}"
+
+
+def player_photo_exists(name: str) -> bool:
+    """Verifica se existe um PNG local para o nome/correcao informada."""
+    return (PLAYER_PHOTO_PATH / f"{name}{PLAYER_PHOTO_EXT}").is_file()
+
+
+def local_photo_url_exists(photo_url: str) -> bool:
+    """Valida caminhos locais em assets/players, preservando URLs externas."""
+    if not photo_url:
+        return False
+    prefix = f"{PLAYER_PHOTO_DIR}/"
+    if not photo_url.startswith(prefix):
+        return True
+    filename = unquote(photo_url[len(prefix):])
+    return (Path(__file__).resolve().parent / PLAYER_PHOTO_DIR / filename).is_file()
+
+
+def default_player_photo_url(name: str) -> str | None:
+    photo_name = PLAYER_PHOTO_ALIASES.get(name, name)
+    if not player_photo_exists(photo_name):
+        return None
+    return player_photo_url(photo_name)
+
 
 JOGADORES = [
     # Base
@@ -33,11 +83,12 @@ JOGADORES = [
     {"name": 'Cho Gue-sung', "team_name": 'Base', "position": 'Atacante', "rating": 1, "foto": ''},
 
     # Brasil
-    {"name": 'Alisson', "team_name": 'Brasil', "position": 'Goleiro', "rating": 5, "foto": ''},
+    {"name": 'Alisson Becker', "team_name": 'Brasil', "position": 'Goleiro', "rating": 5, "foto": '', "original_name": 'Alisson'},
     {"name": 'Marquinhos', "team_name": 'Brasil', "position": 'Zagueiro', "rating": 4, "foto": ''},
+    {"name": 'Bruno Guimarães', "team_name": 'Brasil', "position": 'Meio-Campo', "rating": 5, "foto": ''},
     {"name": 'Casemiro', "team_name": 'Brasil', "position": 'Meio-Campo', "rating": 4, "foto": ''},
-    {"name": 'Neymar', "team_name": 'Brasil', "position": 'Atacante', "rating": 5, "foto": ''},
-    {"name": 'Vinicius Jr', "team_name": 'Brasil', "position": 'Atacante', "rating": 5, "foto": ''},
+    {"name": 'Neymar Jr', "team_name": 'Brasil', "position": 'Atacante', "rating": 5, "foto": '', "original_name": 'Neymar'},
+    {"name": 'Vinícius Júnior', "team_name": 'Brasil', "position": 'Atacante', "rating": 5, "foto": '', "original_name": 'Vinicius Jr'},
     {"name": 'Thiago Silva', "team_name": 'Brasil', "position": 'Zagueiro', "rating": 4, "foto": ''},
     {"name": 'Éder Militão', "team_name": 'Brasil', "position": 'Zagueiro', "rating": 4, "foto": ''},
     {"name": 'Lucas Paquetá', "team_name": 'Brasil', "position": 'Meio-Campo', "rating": 4, "foto": ''},
@@ -883,7 +934,11 @@ def _normalize_player(data: dict) -> dict:
     }
 
     photo_url = data.get("photo_url", data.get("foto", data.get("imagem", None)))
-    normalized["photo_url"] = str(photo_url).strip() or None if photo_url is not None else None
+    photo_url = str(photo_url).strip() if photo_url is not None else ""
+    if photo_url:
+        normalized["photo_url"] = photo_url if local_photo_url_exists(photo_url) else None
+    else:
+        normalized["photo_url"] = default_player_photo_url(name)
 
     original_name = str(data.get("original_name", "")).strip()
     original_team_name = str(data.get("original_team_name", "")).strip()
@@ -897,4 +952,8 @@ def _normalize_player(data: dict) -> dict:
 
 def get_initial_players() -> list[dict]:
     """Retorna uma copia validada do catalogo de jogadores."""
-    return [_normalize_player(player) for player in JOGADORES]
+    return [
+        player
+        for player in (_normalize_player(player_data) for player_data in JOGADORES)
+        if player.get("photo_url")
+    ]
